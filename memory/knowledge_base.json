@@ -12,7 +12,11 @@
     "issue": "Cannot connect to WiFi network, says authentication failed",
     "resolution": "Forget network and reconnect, verify password, check if MAC filtering is enabled on router, flush DNS cache",
     "issue_class": "Network - WiFi",
-    "commands": ["ipconfig /flushdns", "netsh wlan delete profile name=NetworkName", "netsh wlan connect name=NetworkName"],
+    "commands": [
+      "ipconfig /flushdns",
+      "netsh wlan delete profile name=NetworkName",
+      "netsh wlan connect name=NetworkName"
+    ],
     "escalation_required": false
   },
   {
@@ -20,7 +24,11 @@
     "issue": "Blue screen of death BSOD with error SYSTEM_SERVICE_EXCEPTION",
     "resolution": "Boot into safe mode, run sfc /scannow, check recent driver updates, run memory diagnostic, check event viewer logs",
     "issue_class": "OS - Crash",
-    "commands": ["sfc /scannow", "DISM /Online /Cleanup-Image /RestoreHealth", "mdsched.exe"],
+    "commands": [
+      "sfc /scannow",
+      "DISM /Online /Cleanup-Image /RestoreHealth",
+      "mdsched.exe"
+    ],
     "escalation_required": false
   },
   {
@@ -28,7 +36,11 @@
     "issue": "Outlook not receiving emails, stuck at loading profile",
     "resolution": "Repair Office installation, delete OST file, recreate mail profile, check Exchange connectivity, disable add-ins",
     "issue_class": "Software - Email",
-    "commands": ["outlook.exe /safe", "outlook.exe /resetnavpane", "outlook.exe /cleanprofile"],
+    "commands": [
+      "outlook.exe /safe",
+      "outlook.exe /resetnavpane",
+      "outlook.exe /cleanprofile"
+    ],
     "escalation_required": false
   },
   {
@@ -36,7 +48,12 @@
     "issue": "Computer running extremely slow, high CPU usage at 100%",
     "resolution": "Check Task Manager for resource-hogging processes, run malware scan, disable startup programs, check for Windows updates running in background, increase virtual memory",
     "issue_class": "Performance - CPU",
-    "commands": ["tasklist", "msconfig", "cleanmgr", "defrag C: /U /V"],
+    "commands": [
+      "tasklist",
+      "msconfig",
+      "cleanmgr",
+      "defrag C: /U /V"
+    ],
     "escalation_required": false
   },
   {
@@ -44,7 +61,11 @@
     "issue": "Printer not found on network, cannot print documents",
     "resolution": "Restart print spooler service, reinstall printer drivers, check IP address of printer, ensure printer is on same subnet",
     "issue_class": "Hardware - Printer",
-    "commands": ["net stop spooler", "net start spooler", "ping <printer_ip>"],
+    "commands": [
+      "net stop spooler",
+      "net start spooler",
+      "ping <printer_ip>"
+    ],
     "escalation_required": false
   },
   {
@@ -52,7 +73,9 @@
     "issue": "VPN disconnects every few minutes and cannot stay connected",
     "resolution": "Update VPN client, check firewall rules, try different VPN protocol, contact network admin for server-side logs, check MTU settings",
     "issue_class": "Network - VPN",
-    "commands": ["netsh interface ipv4 set subinterface 'Ethernet' mtu=1400 store=persistent"],
+    "commands": [
+      "netsh interface ipv4 set subinterface 'Ethernet' mtu=1400 store=persistent"
+    ],
     "escalation_required": true
   },
   {
@@ -60,15 +83,20 @@
     "issue": "User forgot Windows login password and cannot access their account",
     "resolution": "Use admin account to reset password via Active Directory, or use local admin account, boot from recovery media if standalone machine",
     "issue_class": "Security - Access",
-    "commands": ["net user <username> <newpassword>"],
+    "commands": [
+      "net user <username> <newpassword>"
+    ],
     "escalation_required": false
   },
   {
     "id": "009",
     "issue": "Hard drive making clicking noise and files are not accessible",
-    "resolution": "Immediately backup accessible data, run SMART diagnostic, do not attempt to repair — replace drive, escalate to data recovery if critical data lost",
+    "resolution": "Immediately backup accessible data, run SMART diagnostic, do not attempt to repair \u2014 replace drive, escalate to data recovery if critical data lost",
     "issue_class": "Hardware - Storage",
-    "commands": ["chkdsk C: /f /r", "wmic diskdrive get status"],
+    "commands": [
+      "chkdsk C: /f /r",
+      "wmic diskdrive get status"
+    ],
     "escalation_required": true
   },
   {
@@ -76,7 +104,22 @@
     "issue": "Application keeps crashing with out of memory error",
     "resolution": "Increase RAM or virtual memory, close background applications, check for memory leaks, update or reinstall the application",
     "issue_class": "Software - Crash",
-    "commands": ["taskmgr", "resmon"],
+    "commands": [
+      "taskmgr",
+      "resmon"
+    ],
     "escalation_required": false
+  },
+  {
+    "issue": "my laptop won't connect to wifi",
+    "resolution": "Forget WiFi network and reconnect Verify WiFi password Check if MAC filtering is enabled on the router",
+    "issue_class": "Network - WiFi",
+    "commands": [
+      "ipconfig /flushdns",
+      "netsh wlan delete profile name=<NetworkName>",
+      "netsh wlan connect name=<NetworkName>"
+    ],
+    "escalation_required": false,
+    "id": "011"
   }
 ]

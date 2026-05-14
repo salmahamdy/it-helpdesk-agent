@@ -1,46 +1,54 @@
-import json
+"""
+Retriever: vector search over the MongoDB-backed knowledge base.
+
+Flow:
+  1. Load all cases from MongoDB → build FAISS index (once)
+  2. On query → embed → FAISS top-k → filter by threshold
+  3. On add  → write to MongoDB + append to FAISS in-memory
+"""
+
 from rag.embedder import embed_text
 from rag.vector_store import VectorStore
-from config import KNOWLEDGE_BASE_PATH, TOP_K_RESULTS
+from rag.database import get_all_cases, insert_case
+from config import TOP_K_RESULTS, SIMILARITY_THRESHOLD
 
-_store = None
+_store: VectorStore | None = None
 
 
 def _load_store() -> VectorStore:
     global _store
     if _store is None:
         _store = VectorStore()
-        cases = _load_cases()
+        cases = get_all_cases()
         if cases:
             _store.build(cases)
     return _store
 
 
-def _load_cases() -> list[dict]:
-    try:
-        with open(KNOWLEDGE_BASE_PATH, "r") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-
-def retrieve_similar_cases(query: str, top_k: int = TOP_K_RESULTS) -> list[dict]:
+def retrieve_similar_cases(
+    query: str,
+    top_k: int = TOP_K_RESULTS,
+    min_score: float = SIMILARITY_THRESHOLD,
+) -> list[dict]:
+    """Return up to top_k cases above the similarity threshold."""
     store = _load_store()
     query_embedding = embed_text(query)
-    return store.search(query_embedding, top_k)
+    results = store.search(query_embedding, top_k)
+    # Filter out low-relevance noise
+    return [r for r in results if r.get("similarity_score", 0) >= min_score]
 
 
-def add_to_knowledge_base(case: dict) -> None:
-    cases = _load_cases()
-    case["id"] = str(len(cases) + 1).zfill(3)
-    cases.append(case)
-    with open(KNOWLEDGE_BASE_PATH, "w") as f:
-        json.dump(cases, f, indent=2)
+def add_to_knowledge_base(case: dict) -> str:
+    """Persist a new case to MongoDB and update the in-memory FAISS index."""
+    case_id = insert_case(case)
+    case["case_id"] = case_id
     store = _load_store()
     store.add_case(case)
+    return case_id
 
 
 def reload_store() -> None:
+    """Force a full reload from MongoDB (e.g. after bulk import)."""
     global _store
     _store = None
     _load_store()

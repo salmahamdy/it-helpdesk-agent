@@ -349,7 +349,10 @@ with col_results:
                     with st.expander("View Raw JSON Response"):
                         st.markdown(f'<div class="raw-json">{format_json_display(response)}</div>', unsafe_allow_html=True)
 
-                    st.success("✅ Case saved to knowledge base for future retrieval.")
+                    if response.get("_saved_to_kb"):
+                        st.success("✅ Case saved to knowledge base for future retrieval.")
+                    else:
+                        st.info("ℹ️ Low confidence — case was not saved to knowledge base.")
 
                 except ValueError as e:
                     st.error(f"Configuration error: {e}")
