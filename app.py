@@ -244,9 +244,30 @@ with col_input:
     issue_text = st.text_area(
         label="issue_input",
         placeholder="e.g. My laptop won't connect to the office WiFi after a Windows update...",
-        height=160,
+        height=130,
         label_visibility="collapsed",
     )
+
+    st.markdown('<div class="section-label" style="margin-top:0.8rem;">Your System</div>', unsafe_allow_html=True)
+
+    os_col1, os_col2 = st.columns(2)
+    with os_col1:
+        os_choice = st.selectbox(
+            "Operating System",
+            ["Windows", "macOS", "Linux"],
+            label_visibility="collapsed",
+        )
+    with os_col2:
+        version_placeholders = {
+            "Windows": "e.g. 11 23H2, 10 22H2",
+            "macOS": "e.g. Sonoma 14.5, Ventura 13.6",
+            "Linux": "e.g. Ubuntu 24.04, Fedora 40",
+        }
+        os_version = st.text_input(
+            "Version",
+            placeholder=version_placeholders.get(os_choice, ""),
+            label_visibility="collapsed",
+        )
 
     diagnose = st.button("⚡ Diagnose Issue", use_container_width=True)
 
@@ -257,9 +278,10 @@ with col_input:
     <div style="font-size:0.8rem; color:#8b949e; line-height:1.8;">
         <span style="color:#58a6ff;">Model</span> · llama-3.1-8b-instant<br>
         <span style="color:#58a6ff;">Embeddings</span> · all-MiniLM-L6-v2<br>
-        <span style="color:#58a6ff;">Vector DB</span> · FAISS (local)<br>
-        <span style="color:#58a6ff;">Memory</span> · JSON knowledge base<br>
-        <span style="color:#58a6ff;">Top-K Retrieval</span> · 3 cases
+        <span style="color:#58a6ff;">Vector DB</span> · FAISS (cosine sim)<br>
+        <span style="color:#58a6ff;">Memory</span> · MongoDB<br>
+        <span style="color:#58a6ff;">Top-K Retrieval</span> · 3 cases<br>
+        <span style="color:#58a6ff;">Knowledge Base</span> · 30 OS-aware cases
     </div>
     """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -271,7 +293,8 @@ with col_results:
         else:
             with st.spinner("Analyzing issue and retrieving similar cases..."):
                 try:
-                    response, similar_cases = run_agent(issue_text.strip())
+                    os_info = {"os": os_choice, "version": os_version}
+                    response, similar_cases = run_agent(issue_text.strip(), os_info=os_info)
 
                     st.markdown('<div class="section-label">Retrieved Cases (RAG Context)</div>', unsafe_allow_html=True)
 

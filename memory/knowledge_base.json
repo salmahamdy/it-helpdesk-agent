@@ -2,124 +2,3359 @@
   {
     "id": "001",
     "issue": "My computer won't turn on and the power light is not blinking",
-    "resolution": "Check power cable connections, test with different outlet, inspect power supply unit, check for blown fuse in plug",
+    "resolution": {
+      "windows": "Check power cable connections, test with different outlet, inspect PSU. If laptop, remove battery and hold power button 30 seconds. Check BIOS by pressing F2/DEL on boot.",
+      "mac": "Try an SMC reset: shut down, hold Shift+Control+Option+Power for 10 seconds, release. For desktop Mac, unplug power for 15 seconds. Check MagSafe/USB-C cable LED indicator.",
+      "linux": "Check power cable connections, test with different outlet, inspect PSU. Try holding power button 30 seconds to drain capacitors. Check if BIOS POST screen appears."
+    },
     "issue_class": "Hardware - Power",
-    "commands": [],
-    "escalation_required": false
+    "commands": {
+      "windows": [],
+      "mac": [],
+      "linux": []
+    },
+    "escalation_required": false,
+    "tags": [
+      "power",
+      "boot",
+      "hardware"
+    ]
   },
   {
     "id": "002",
     "issue": "Cannot connect to WiFi network, says authentication failed",
-    "resolution": "Forget network and reconnect, verify password, check if MAC filtering is enabled on router, flush DNS cache",
+    "resolution": {
+      "windows": "Forget network and reconnect: Settings > Network > Wi-Fi > Manage known networks. Flush DNS cache. Reset network stack if persistent.",
+      "mac": "Remove network: System Settings > Wi-Fi > click (i) next to network > Forget. Delete Wi-Fi preferences plist. Renew DHCP lease.",
+      "linux": "Remove saved connection and reconnect. Restart NetworkManager. Check if wpa_supplicant is running. Verify wireless interface is not blocked by rfkill."
+    },
     "issue_class": "Network - WiFi",
-    "commands": [
-      "ipconfig /flushdns",
-      "netsh wlan delete profile name=NetworkName",
-      "netsh wlan connect name=NetworkName"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "ipconfig /flushdns",
+        "netsh wlan delete profile name=NetworkName",
+        "netsh winsock reset",
+        "netsh int ip reset"
+      ],
+      "mac": [
+        "sudo dscacheutil -flushcache",
+        "sudo killall -HUP mDNSResponder",
+        "networksetup -removepreferredwirelessnetwork en0 NetworkName"
+      ],
+      "linux": [
+        "nmcli connection delete NetworkName",
+        "sudo systemctl restart NetworkManager",
+        "rfkill list",
+        "rfkill unblock wifi",
+        "sudo dhclient -r && sudo dhclient"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "wifi",
+      "network",
+      "authentication",
+      "dns"
+    ]
   },
   {
     "id": "003",
     "issue": "Blue screen of death BSOD with error SYSTEM_SERVICE_EXCEPTION",
-    "resolution": "Boot into safe mode, run sfc /scannow, check recent driver updates, run memory diagnostic, check event viewer logs",
+    "resolution": {
+      "windows": "Boot into Safe Mode (hold Shift during restart). Run System File Checker and DISM. Check Event Viewer for driver causing the crash. Roll back recent driver updates. Run Windows Memory Diagnostic.",
+      "mac": "Macs don't get BSOD but may show kernel panic. Boot into Safe Mode (hold Shift on Intel, hold power on Apple Silicon). Run Apple Diagnostics (hold D on boot). Reset NVRAM.",
+      "linux": "Check kernel panic logs. Boot into recovery mode from GRUB. Run filesystem check. Check dmesg and journalctl for the crash cause. May need to roll back kernel update."
+    },
     "issue_class": "OS - Crash",
-    "commands": [
-      "sfc /scannow",
-      "DISM /Online /Cleanup-Image /RestoreHealth",
-      "mdsched.exe"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "sfc /scannow",
+        "DISM /Online /Cleanup-Image /RestoreHealth",
+        "mdsched.exe",
+        "verifier /standard /all"
+      ],
+      "mac": [
+        "sudo nvram -c",
+        "sudo fsck -fy",
+        "log show --predicate 'eventMessage contains \"panic\"' --last 1d"
+      ],
+      "linux": [
+        "dmesg | tail -50",
+        "journalctl -k -b -1",
+        "sudo fsck -f /dev/sda1",
+        "sudo apt install --reinstall linux-image-$(uname -r)"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "bsod",
+      "crash",
+      "kernel",
+      "panic",
+      "bluescreen"
+    ]
   },
   {
     "id": "004",
     "issue": "Outlook not receiving emails, stuck at loading profile",
-    "resolution": "Repair Office installation, delete OST file, recreate mail profile, check Exchange connectivity, disable add-ins",
+    "resolution": {
+      "windows": "Start Outlook in Safe Mode. Delete the OST file from AppData. Repair Office installation via Control Panel. Recreate Outlook mail profile. Disable COM add-ins.",
+      "mac": "Quit Outlook, rebuild the database: hold Option and click Outlook icon. Clear Outlook cache in ~/Library/Group Containers. Re-add email account if needed. Check Keychain Access for corrupted credentials.",
+      "linux": "If using Thunderbird, try safe mode (thunderbird --safe-mode). Clear the cache. Reconfigure the IMAP/SMTP settings. Check if Evolution or Thunderbird profile is corrupted."
+    },
     "issue_class": "Software - Email",
-    "commands": [
-      "outlook.exe /safe",
-      "outlook.exe /resetnavpane",
-      "outlook.exe /cleanprofile"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "outlook.exe /safe",
+        "outlook.exe /resetnavpane",
+        "outlook.exe /cleanprofile"
+      ],
+      "mac": [
+        "/Applications/Microsoft\\ Outlook.app/Contents/MacOS/Microsoft\\ Outlook --profile-manager"
+      ],
+      "linux": [
+        "thunderbird --safe-mode",
+        "rm -rf ~/.thunderbird/*/cache2",
+        "evolution --force-shutdown"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "email",
+      "outlook",
+      "thunderbird",
+      "profile"
+    ]
   },
   {
     "id": "005",
     "issue": "Computer running extremely slow, high CPU usage at 100%",
-    "resolution": "Check Task Manager for resource-hogging processes, run malware scan, disable startup programs, check for Windows updates running in background, increase virtual memory",
+    "resolution": {
+      "windows": "Open Task Manager (Ctrl+Shift+Esc) and sort by CPU. Check for Windows Update or antivirus scanning in background. Disable unnecessary startup programs via msconfig. Run Disk Cleanup. Check for malware.",
+      "mac": "Open Activity Monitor (Cmd+Space, type Activity Monitor). Sort by CPU%. Check for runaway processes like mdworker (Spotlight indexing) or kernel_task. Reset SMC if kernel_task is high. Check Login Items in System Settings.",
+      "linux": "Run top or htop to identify the process. Check if it's a runaway cron job, indexing service, or snapd. Check system load with uptime. Kill runaway processes. Check for zombie processes."
+    },
     "issue_class": "Performance - CPU",
-    "commands": [
-      "tasklist",
-      "msconfig",
-      "cleanmgr",
-      "defrag C: /U /V"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "tasklist /FI \"STATUS eq running\"",
+        "msconfig",
+        "cleanmgr"
+      ],
+      "mac": [
+        "top -o cpu",
+        "sudo fs_usage -f filesys",
+        "sudo purge",
+        "pmset -g thermlog"
+      ],
+      "linux": [
+        "htop",
+        "top -bn1 | head -20",
+        "ps aux --sort=-%cpu | head -10",
+        "uptime"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "cpu",
+      "performance",
+      "slow",
+      "task manager"
+    ]
   },
   {
     "id": "006",
     "issue": "Printer not found on network, cannot print documents",
-    "resolution": "Restart print spooler service, reinstall printer drivers, check IP address of printer, ensure printer is on same subnet",
+    "resolution": {
+      "windows": "Restart Print Spooler service. Re-add printer via Settings > Printers & Scanners. Ensure printer and PC are on same subnet. Update or reinstall printer drivers from manufacturer.",
+      "mac": "Reset printing system: System Settings > Printers & Scanners > right-click printer list > Reset printing system. Re-add printer. Check if Bonjour/AirPrint discovers it. Verify same network.",
+      "linux": "Restart CUPS service. Add printer via CUPS web interface at localhost:631. Install appropriate driver package. Check if printer is visible on the network with avahi-browse."
+    },
     "issue_class": "Hardware - Printer",
-    "commands": [
-      "net stop spooler",
-      "net start spooler",
-      "ping <printer_ip>"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "net stop spooler",
+        "net start spooler",
+        "ping <printer_ip>"
+      ],
+      "mac": [
+        "lpstat -p",
+        "cupsctl --debug-logging",
+        "ping <printer_ip>"
+      ],
+      "linux": [
+        "sudo systemctl restart cups",
+        "lpstat -t",
+        "avahi-browse -rt _ipp._tcp"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "printer",
+      "cups",
+      "spooler",
+      "network"
+    ]
   },
   {
     "id": "007",
     "issue": "VPN disconnects every few minutes and cannot stay connected",
-    "resolution": "Update VPN client, check firewall rules, try different VPN protocol, contact network admin for server-side logs, check MTU settings",
+    "resolution": {
+      "windows": "Update VPN client. Check Windows Firewall rules for the VPN app. Try switching VPN protocol (IKEv2 vs OpenVPN). Lower MTU on the network interface. Disable IPv6 on the VPN adapter.",
+      "mac": "Update VPN client. Check macOS firewall (System Settings > Network > Firewall). Try IKEv2 over L2TP. If using built-in VPN, recreate the profile. Check if 'Send all traffic over VPN' is enabled.",
+      "linux": "Update VPN client. Check firewall rules with iptables/nftables. Try lowering MTU. Check NetworkManager logs. If using OpenVPN, add keepalive and persist-tun directives to config."
+    },
     "issue_class": "Network - VPN",
-    "commands": [
-      "netsh interface ipv4 set subinterface 'Ethernet' mtu=1400 store=persistent"
-    ],
-    "escalation_required": true
+    "commands": {
+      "windows": [
+        "netsh interface ipv4 set subinterface \"Ethernet\" mtu=1400 store=persistent"
+      ],
+      "mac": [
+        "sudo ifconfig utun0 mtu 1400",
+        "scutil --nc list"
+      ],
+      "linux": [
+        "sudo ip link set dev tun0 mtu 1400",
+        "journalctl -u NetworkManager --since '30 min ago'"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "vpn",
+      "disconnect",
+      "mtu",
+      "firewall"
+    ]
   },
   {
     "id": "008",
-    "issue": "User forgot Windows login password and cannot access their account",
-    "resolution": "Use admin account to reset password via Active Directory, or use local admin account, boot from recovery media if standalone machine",
+    "issue": "User forgot login password and cannot access their account",
+    "resolution": {
+      "windows": "Use admin account to reset via Active Directory (domain). For local accounts on Windows 10/11, use Microsoft account recovery online. Boot from Windows recovery USB as last resort.",
+      "mac": "Restart and hold Cmd+R to boot into Recovery. Open Terminal from Utilities menu and use resetpassword command. If FileVault is enabled, you'll need the recovery key. Apple ID reset also works if linked.",
+      "linux": "Reboot into GRUB, edit boot entry to add init=/bin/bash. Remount root as read-write and use passwd to reset. Alternatively boot from a live USB and chroot into the installation."
+    },
     "issue_class": "Security - Access",
-    "commands": [
-      "net user <username> <newpassword>"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "net user <username> <newpassword>"
+      ],
+      "mac": [
+        "resetpassword",
+        "dscl . -passwd /Users/<username> <newpassword>"
+      ],
+      "linux": [
+        "mount -o remount,rw /",
+        "passwd <username>",
+        "exec /sbin/init"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "password",
+      "login",
+      "access",
+      "reset"
+    ]
   },
   {
     "id": "009",
     "issue": "Hard drive making clicking noise and files are not accessible",
-    "resolution": "Immediately backup accessible data, run SMART diagnostic, do not attempt to repair \u2014 replace drive, escalate to data recovery if critical data lost",
+    "resolution": {
+      "windows": "STOP using the drive immediately. Backup any accessible data. Run SMART diagnostics. Do not attempt chkdsk on a clicking drive. Replace drive and escalate for data recovery.",
+      "mac": "STOP using the drive immediately. Check Disk Utility for SMART status. If internal, boot to Recovery and try Disk Utility First Aid. Do not attempt repair on clicking drive. Replace.",
+      "linux": "STOP using the drive immediately. Check SMART status with smartctl. Mount read-only if you must recover files. Use ddrescue to clone the drive before any repair attempt. Replace the drive."
+    },
     "issue_class": "Hardware - Storage",
-    "commands": [
-      "chkdsk C: /f /r",
-      "wmic diskdrive get status"
-    ],
-    "escalation_required": true
+    "commands": {
+      "windows": [
+        "wmic diskdrive get status",
+        "wmic diskdrive get model,serialnumber,status"
+      ],
+      "mac": [
+        "diskutil info disk0 | grep SMART",
+        "smartctl -a /dev/disk0"
+      ],
+      "linux": [
+        "sudo smartctl -a /dev/sda",
+        "sudo ddrescue /dev/sda /dev/sdb rescue.log"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "hard drive",
+      "clicking",
+      "smart",
+      "storage",
+      "data recovery"
+    ]
   },
   {
     "id": "010",
     "issue": "Application keeps crashing with out of memory error",
-    "resolution": "Increase RAM or virtual memory, close background applications, check for memory leaks, update or reinstall the application",
+    "resolution": {
+      "windows": "Check Task Manager for memory usage. Increase virtual memory: System Properties > Advanced > Performance Settings > Virtual Memory. Close background apps. Check for memory leaks.",
+      "mac": "Check Activity Monitor Memory tab for memory pressure. Close memory-heavy apps. If yellow/red pressure is constant, consider upgrading RAM or reducing open apps.",
+      "linux": "Check memory with free -h and top. Look for OOM killer messages in dmesg. Increase swap space if needed. Set per-process memory limits with ulimit."
+    },
     "issue_class": "Software - Crash",
-    "commands": [
-      "taskmgr",
-      "resmon"
-    ],
-    "escalation_required": false
+    "commands": {
+      "windows": [
+        "taskmgr",
+        "resmon",
+        "systeminfo | findstr Memory"
+      ],
+      "mac": [
+        "memory_pressure",
+        "vm_stat",
+        "sysctl hw.memsize"
+      ],
+      "linux": [
+        "free -h",
+        "dmesg | grep -i 'out of memory'",
+        "cat /proc/meminfo",
+        "sudo swapon --show"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "memory",
+      "oom",
+      "crash",
+      "ram",
+      "swap"
+    ]
   },
   {
-    "issue": "my laptop won't connect to wifi",
-    "resolution": "Forget WiFi network and reconnect Verify WiFi password Check if MAC filtering is enabled on the router",
-    "issue_class": "Network - WiFi",
-    "commands": [
-      "ipconfig /flushdns",
-      "netsh wlan delete profile name=<NetworkName>",
-      "netsh wlan connect name=<NetworkName>"
-    ],
+    "id": "011",
+    "issue": "Screen flickering or display artifacts appearing randomly",
+    "resolution": {
+      "windows": "Update or roll back display driver via Device Manager. Check display cable connections. Try a different monitor. Disable hardware acceleration in affected apps. Check GPU temperature.",
+      "mac": "Reset NVRAM (Cmd+Option+P+R on Intel; shutdown and hold power for Apple Silicon). Check display cable if external. Reduce transparency in Accessibility settings. Run Apple Diagnostics.",
+      "linux": "Check Xorg logs for driver errors. Try switching between Wayland and X11. Update GPU drivers. Check cable connections and test with xrandr."
+    },
+    "issue_class": "Hardware - Display",
+    "commands": {
+      "windows": [
+        "dxdiag",
+        "pnputil /enum-drivers /class display"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType",
+        "sudo nvram -c"
+      ],
+      "linux": [
+        "cat /var/log/Xorg.0.log | grep EE",
+        "xrandr --listmonitors",
+        "lspci | grep -i vga"
+      ]
+    },
     "escalation_required": false,
-    "id": "011"
+    "tags": [
+      "display",
+      "screen",
+      "flickering",
+      "gpu",
+      "driver"
+    ]
+  },
+  {
+    "id": "012",
+    "issue": "No sound coming from speakers or headphones",
+    "resolution": {
+      "windows": "Check volume mixer. Run audio troubleshooter. Update audio drivers. Check default playback device in Sound Settings. Restart Windows Audio service.",
+      "mac": "Check System Settings > Sound > Output. Reset Core Audio by killing coreaudiod. Check volume on Touch Bar or keyboard. Try a different output device.",
+      "linux": "Check PulseAudio/PipeWire settings with pavucontrol. Ensure correct output sink. Check ALSA mixer levels. Restart audio service."
+    },
+    "issue_class": "Hardware - Audio",
+    "commands": {
+      "windows": [
+        "net stop audiosrv & net start audiosrv",
+        "sndvol"
+      ],
+      "mac": [
+        "sudo killall coreaudiod",
+        "system_profiler SPAudioDataType"
+      ],
+      "linux": [
+        "pavucontrol",
+        "alsamixer",
+        "systemctl --user restart pipewire",
+        "aplay -l"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "audio",
+      "sound",
+      "speakers",
+      "headphones"
+    ]
+  },
+  {
+    "id": "013",
+    "issue": "USB device not recognized when plugged in",
+    "resolution": {
+      "windows": "Try a different USB port. Uninstall and reinstall USB controller in Device Manager. Check for driver updates. Disable USB selective suspend in Power Options.",
+      "mac": "Try a different port. Reset SMC (Intel) or restart (Apple Silicon). Check System Information > USB. Try a different cable.",
+      "linux": "Check dmesg for USB errors. Try a different port. Reload USB kernel modules. Check lsusb. Verify udev rules."
+    },
+    "issue_class": "Hardware - USB",
+    "commands": {
+      "windows": [
+        "devmgmt.msc",
+        "pnputil /scan-devices"
+      ],
+      "mac": [
+        "system_profiler SPUSBDataType",
+        "ioreg -p IOUSB -l"
+      ],
+      "linux": [
+        "lsusb",
+        "dmesg | tail -20",
+        "sudo modprobe -r xhci_hcd && sudo modprobe xhci_hcd"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "usb",
+      "device",
+      "hardware",
+      "driver"
+    ]
+  },
+  {
+    "id": "014",
+    "issue": "Internet is connected but websites are not loading",
+    "resolution": {
+      "windows": "Flush DNS and reset network stack. Ping 8.8.8.8 to isolate DNS vs connectivity. Change DNS to 8.8.8.8 / 1.1.1.1. Disable proxy. Check hosts file.",
+      "mac": "Flush DNS cache. Ping 8.8.8.8 to check connectivity vs DNS. Change DNS in network settings. Check /etc/hosts. Renew DHCP lease.",
+      "linux": "Flush DNS cache. Ping 8.8.8.8. Change /etc/resolv.conf nameserver to 8.8.8.8. Check iptables rules. Restart systemd-resolved."
+    },
+    "issue_class": "Network - DNS",
+    "commands": {
+      "windows": [
+        "ipconfig /flushdns",
+        "nslookup google.com",
+        "ping 8.8.8.8",
+        "netsh winsock reset"
+      ],
+      "mac": [
+        "sudo dscacheutil -flushcache",
+        "sudo killall -HUP mDNSResponder",
+        "nslookup google.com",
+        "ping 8.8.8.8"
+      ],
+      "linux": [
+        "sudo systemd-resolve --flush-caches",
+        "nslookup google.com",
+        "ping -c 4 8.8.8.8",
+        "cat /etc/resolv.conf"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "dns",
+      "internet",
+      "network",
+      "websites",
+      "connectivity"
+    ]
+  },
+  {
+    "id": "015",
+    "issue": "File or folder accidentally deleted and need to recover it",
+    "resolution": {
+      "windows": "Check Recycle Bin. If emptied, try File History (right-click folder > Restore previous versions). Use Windows File Recovery tool (winfr). Check shadow copies.",
+      "mac": "Check Trash. If emptied, check Time Machine backups. For iCloud files, check icloud.com > Recently Deleted.",
+      "linux": "Check trash (~/.local/share/Trash). If permanently deleted, remount filesystem read-only immediately. Use extundelete or testdisk. Act fast."
+    },
+    "issue_class": "Software - Data Recovery",
+    "commands": {
+      "windows": [
+        "winfr C: E: /regular /n \\Users\\<user>\\Documents\\",
+        "vssadmin list shadows"
+      ],
+      "mac": [
+        "tmutil listbackups",
+        "tmutil restore <path>"
+      ],
+      "linux": [
+        "sudo extundelete /dev/sda1 --restore-all",
+        "sudo testdisk /dev/sda"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "deleted",
+      "recovery",
+      "recycle bin",
+      "trash",
+      "file"
+    ]
+  },
+  {
+    "id": "016",
+    "issue": "Software installation fails with permission error",
+    "resolution": {
+      "windows": "Right-click installer > Run as Administrator. Check UAC settings. Verify admin rights. Temporarily disable antivirus. Check Windows Installer service.",
+      "mac": "Check Privacy & Security for blocked apps. Right-click > Open to bypass Gatekeeper. Use sudo for CLI installs. Ensure disk space.",
+      "linux": "Use sudo for system-wide installs. Check permissions. Verify sudoers group membership. For snap/flatpak, check sandbox permissions."
+    },
+    "issue_class": "Software - Installation",
+    "commands": {
+      "windows": [
+        "net start msiserver",
+        "whoami /groups | findstr Administrators"
+      ],
+      "mac": [
+        "sudo installer -pkg /path/to/package.pkg -target /",
+        "spctl --status"
+      ],
+      "linux": [
+        "sudo dpkg -i package.deb",
+        "groups $USER",
+        "sudo usermod -aG sudo $USER"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "install",
+      "permission",
+      "admin",
+      "software"
+    ]
+  },
+  {
+    "id": "017",
+    "issue": "Computer freezes randomly and needs hard reboot",
+    "resolution": {
+      "windows": "Check Event Viewer for critical errors. Run memory diagnostic. Check temperatures. Update BIOS. Check disk errors. Disable fast startup.",
+      "mac": "Check Console app for freeze-time logs. Run Apple Diagnostics. Reset SMC and NVRAM. Check Activity Monitor before freeze.",
+      "linux": "Check journalctl for crash period. Enable Magic SysRq. Check temperatures with lm-sensors. Run memtest86+ from GRUB."
+    },
+    "issue_class": "OS - Freeze",
+    "commands": {
+      "windows": [
+        "eventvwr.msc",
+        "mdsched.exe",
+        "powercfg /h off",
+        "sfc /scannow"
+      ],
+      "mac": [
+        "log show --predicate 'messageType == error' --last 1h",
+        "sudo nvram -c"
+      ],
+      "linux": [
+        "journalctl -b -1 -p err",
+        "sensors",
+        "sudo memtest86+"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "freeze",
+      "hang",
+      "reboot",
+      "temperature"
+    ]
+  },
+  {
+    "id": "018",
+    "issue": "Cannot connect to network shared drive or folder",
+    "resolution": {
+      "windows": "Verify SMB is enabled. Check Credential Manager. Ensure Network Discovery is on. Try accessing by IP. Check firewall for port 445.",
+      "mac": "Finder > Go > Connect to Server > smb://server/share. Check SMB in Sharing settings. Verify Keychain credentials.",
+      "linux": "Mount with cifs-utils. Install smbclient for testing. Check credentials file permissions (600). Verify DNS resolves hostname."
+    },
+    "issue_class": "Network - File Sharing",
+    "commands": {
+      "windows": [
+        "net use \\\\server\\share /user:domain\\username",
+        "cmdkey /list"
+      ],
+      "mac": [
+        "smbutil statshares -a",
+        "mount_smbfs //user@server/share /mnt/point"
+      ],
+      "linux": [
+        "smbclient -L //server -U username",
+        "sudo mount -t cifs //server/share /mnt/share -o username=user"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "network",
+      "share",
+      "smb",
+      "drive",
+      "mount"
+    ]
+  },
+  {
+    "id": "019",
+    "issue": "Browser running slow with high memory usage",
+    "resolution": {
+      "windows": "Reduce open tabs. Disable unused extensions. Clear cache. Check for updates. Reset browser. Toggle hardware acceleration.",
+      "mac": "Check Activity Monitor for memory. Close unused tabs. Disable extensions. Clear cache. Safari: Develop > Empty Caches.",
+      "linux": "Check per-tab memory in browser task manager (Shift+Esc). Disable hardware acceleration. Clear cache. Consider lighter browser."
+    },
+    "issue_class": "Software - Browser",
+    "commands": {
+      "windows": [
+        "tasklist /FI \"IMAGENAME eq chrome.exe\"",
+        "taskkill /IM chrome.exe /F"
+      ],
+      "mac": [
+        "top -l 1 | grep -i safari"
+      ],
+      "linux": [
+        "ps aux | grep -i chrome",
+        "killall chrome"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "browser",
+      "memory",
+      "chrome",
+      "safari",
+      "firefox",
+      "slow"
+    ]
+  },
+  {
+    "id": "020",
+    "issue": "Disk space running low with no obvious large files",
+    "resolution": {
+      "windows": "Run Disk Cleanup including system files. Check WinSxS size. Clear Update cache. Use WinDirStat or TreeSize. Clear temp folders.",
+      "mac": "Check Storage in System Settings. Clear ~/Library/Caches. Empty Trash. Remove old Time Machine snapshots. Check mail attachments.",
+      "linux": "Use ncdu to find large files. Clean package cache. Check /var/log sizes. Remove old kernels. Clean journal logs."
+    },
+    "issue_class": "OS - Storage",
+    "commands": {
+      "windows": [
+        "cleanmgr /d C:",
+        "DISM /Online /Cleanup-Image /StartComponentCleanup"
+      ],
+      "mac": [
+        "du -sh ~/Library/Caches/*",
+        "tmutil listlocalsnapshots /",
+        "sudo periodic daily weekly monthly"
+      ],
+      "linux": [
+        "sudo ncdu /",
+        "sudo apt autoremove",
+        "sudo journalctl --vacuum-size=100M",
+        "du -sh /var/log/*"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "disk",
+      "storage",
+      "space",
+      "cleanup",
+      "full"
+    ]
+  },
+  {
+    "id": "021",
+    "issue": "Laptop battery draining too fast",
+    "resolution": {
+      "windows": "Run battery report. Check power-hungry apps in Battery settings. Reduce brightness. Disable background apps. Check health in report.",
+      "mac": "Check battery health in System Settings (cycle count, condition). Check Energy tab in Activity Monitor. Enable Low Power Mode. Reduce brightness.",
+      "linux": "Check battery with upower. Install TLP or auto-cpufreq. Reduce brightness. Check powertop for power-hungry processes."
+    },
+    "issue_class": "Hardware - Battery",
+    "commands": {
+      "windows": [
+        "powercfg /batteryreport",
+        "powercfg /energy"
+      ],
+      "mac": [
+        "system_profiler SPPowerDataType",
+        "pmset -g batt"
+      ],
+      "linux": [
+        "upower -i /org/freedesktop/UPower/devices/battery_BAT0",
+        "sudo powertop"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "battery",
+      "power",
+      "drain",
+      "laptop"
+    ]
+  },
+  {
+    "id": "022",
+    "issue": "Two-factor authentication code not working for login",
+    "resolution": {
+      "windows": "Verify system clock is accurate (time drift breaks TOTP). Sync time via Settings. If authenticator app, verify secret key. Contact admin for backup codes.",
+      "mac": "Check Date & Time is automatic. Time drift of 30 seconds breaks TOTP. If using iCloud Keychain codes, ensure iCloud sync.",
+      "linux": "Sync system clock with NTP. Time drift is the most common TOTP failure. Check timedatectl status. Enable NTP sync."
+    },
+    "issue_class": "Security - Authentication",
+    "commands": {
+      "windows": [
+        "w32tm /resync",
+        "w32tm /query /status"
+      ],
+      "mac": [
+        "sudo sntp -sS time.apple.com",
+        "date"
+      ],
+      "linux": [
+        "timedatectl status",
+        "sudo timedatectl set-ntp true",
+        "sudo systemctl restart systemd-timesyncd"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "2fa",
+      "totp",
+      "authentication",
+      "time",
+      "clock"
+    ]
+  },
+  {
+    "id": "023",
+    "issue": "External monitor not detected or showing no signal",
+    "resolution": {
+      "windows": "Check cable and port. Press Win+P to select display mode. Update graphics driver. Check Display Settings > Detect.",
+      "mac": "Check cable/adapter compatibility. System Settings > Displays > hold Option for Detect Displays. Reset NVRAM. Apple Silicon needs specific adapters.",
+      "linux": "Check xrandr for detected displays. Try different cable/port. Force detect with xrandr --auto. For Wayland use wlr-randr. Update GPU drivers."
+    },
+    "issue_class": "Hardware - Display",
+    "commands": {
+      "windows": [
+        "displayswitch /extend",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType",
+        "sudo nvram -c"
+      ],
+      "linux": [
+        "xrandr",
+        "xrandr --auto",
+        "dmesg | grep -i hdmi"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "monitor",
+      "display",
+      "hdmi",
+      "external",
+      "no signal"
+    ]
+  },
+  {
+    "id": "024",
+    "issue": "System clock or time is wrong and keeps resetting",
+    "resolution": {
+      "windows": "Sync with internet time server. Check CMOS battery if time resets after power off. Verify time zone. Check dual-boot UTC conflict.",
+      "mac": "Enable automatic time in Date & Time settings. If time drifts after reboot, PRAM battery may need replacement. Reset NVRAM.",
+      "linux": "Enable NTP sync. If dual-booting Windows, set timedatectl set-local-rtc 1 to avoid conflicts. Check CMOS battery."
+    },
+    "issue_class": "OS - Clock",
+    "commands": {
+      "windows": [
+        "w32tm /resync",
+        "w32tm /config /manualpeerlist:time.nist.gov /syncfromflags:manual"
+      ],
+      "mac": [
+        "sudo sntp -sS time.apple.com",
+        "systemsetup -getnetworktimeserver"
+      ],
+      "linux": [
+        "timedatectl set-ntp true",
+        "timedatectl set-local-rtc 1",
+        "sudo hwclock --systohc"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "clock",
+      "time",
+      "ntp",
+      "cmos",
+      "battery"
+    ]
+  },
+  {
+    "id": "025",
+    "issue": "Webcam not working in video calls",
+    "resolution": {
+      "windows": "Check Settings > Privacy > Camera permissions. Verify webcam in Device Manager. Close other camera apps. Update driver.",
+      "mac": "Check Privacy & Security > Camera permissions. Quit other camera apps (check lsof). If external, try different port. Reset SMC.",
+      "linux": "Check /dev/video0 exists. Verify user is in 'video' group. Check if another app is using it. Install v4l-utils."
+    },
+    "issue_class": "Hardware - Webcam",
+    "commands": {
+      "windows": [
+        "devmgmt.msc",
+        "Get-PnpDevice -Class Camera"
+      ],
+      "mac": [
+        "lsof | grep VDC",
+        "system_profiler SPCameraDataType"
+      ],
+      "linux": [
+        "ls -la /dev/video*",
+        "v4l2-ctl --list-devices",
+        "groups $USER | grep video"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "webcam",
+      "camera",
+      "video",
+      "teams",
+      "zoom"
+    ]
+  },
+  {
+    "id": "026",
+    "issue": "Cannot open or mount an external USB drive",
+    "resolution": {
+      "windows": "Check Disk Management for the drive. Assign a drive letter if missing. If RAW, filesystem may be corrupted. Try different cable/port.",
+      "mac": "Check Disk Utility. Try mounting manually. NTFS drives are read-only by default \u2014 install ntfs-3g or Paragon NTFS. Try different cable.",
+      "linux": "Check lsblk and dmesg. Mount manually with correct filesystem type. Install ntfs-3g for NTFS. Check for filesystem errors."
+    },
+    "issue_class": "Hardware - Storage",
+    "commands": {
+      "windows": [
+        "diskmgmt.msc",
+        "chkdsk E: /f"
+      ],
+      "mac": [
+        "diskutil list",
+        "diskutil mountDisk /dev/disk2"
+      ],
+      "linux": [
+        "lsblk",
+        "sudo fdisk -l",
+        "sudo mount /dev/sdb1 /mnt/usb",
+        "dmesg | tail -20"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "usb",
+      "drive",
+      "mount",
+      "external",
+      "storage"
+    ]
+  },
+  {
+    "id": "027",
+    "issue": "Bluetooth device won't pair or keeps disconnecting",
+    "resolution": {
+      "windows": "Remove device and re-pair. Update Bluetooth driver. Restart Bluetooth Support Service. Check for wireless interference. Disable power management.",
+      "mac": "Remove device and re-pair. Reset Bluetooth module: Shift+Option click Bluetooth icon > Debug > Reset. Remove Bluetooth plist.",
+      "linux": "Remove and re-pair. Restart Bluetooth service. Check bluetoothctl. Check rfkill blocks. Update BlueZ."
+    },
+    "issue_class": "Hardware - Bluetooth",
+    "commands": {
+      "windows": [
+        "net stop bthserv & net start bthserv",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "sudo rm /Library/Preferences/com.apple.Bluetooth.plist",
+        "sudo pkill bluetoothd"
+      ],
+      "linux": [
+        "bluetoothctl",
+        "sudo systemctl restart bluetooth",
+        "rfkill list bluetooth"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "bluetooth",
+      "pairing",
+      "wireless",
+      "disconnect"
+    ]
+  },
+  {
+    "id": "028",
+    "issue": "System update or upgrade failed and now the OS won't boot properly",
+    "resolution": {
+      "windows": "Boot Safe Mode (hold Shift during restart). Try System Restore. Uninstall problematic update via Recovery. Run Startup Repair.",
+      "mac": "Boot Recovery (Cmd+R Intel, hold power Apple Silicon). Reinstall macOS (preserves data). Restore from Time Machine. Last resort: erase and reinstall.",
+      "linux": "Boot previous kernel from GRUB. Use recovery mode for dpkg --configure -a. If GRUB broken, boot live USB and reinstall GRUB. Chroot for repairs."
+    },
+    "issue_class": "OS - Update",
+    "commands": {
+      "windows": [
+        "bcdedit /set {default} safeboot minimal",
+        "rstrui.exe"
+      ],
+      "mac": [
+        "sudo softwareupdate --list"
+      ],
+      "linux": [
+        "sudo dpkg --configure -a",
+        "sudo apt --fix-broken install",
+        "sudo update-grub"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "update",
+      "upgrade",
+      "boot",
+      "grub",
+      "recovery"
+    ]
+  },
+  {
+    "id": "029",
+    "issue": "Microphone not working or very quiet in calls",
+    "resolution": {
+      "windows": "Check Privacy > Microphone permissions. Check Sound Settings input device and volume. Run Recording Audio troubleshooter. Enable mic boost.",
+      "mac": "Check Privacy & Security > Microphone. Check Sound > Input, select device, adjust volume. Check USB/audio jack for external mic.",
+      "linux": "Check PulseAudio/PipeWire input in pavucontrol. Select correct source. Check ALSA capture levels. Test with arecord."
+    },
+    "issue_class": "Hardware - Audio",
+    "commands": {
+      "windows": [
+        "mmsys.cpl",
+        "sndvol"
+      ],
+      "mac": [
+        "system_profiler SPAudioDataType"
+      ],
+      "linux": [
+        "pavucontrol",
+        "arecord -d 5 test.wav && aplay test.wav",
+        "amixer set Capture 100%"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "microphone",
+      "audio",
+      "input",
+      "calls",
+      "quiet"
+    ]
+  },
+  {
+    "id": "030",
+    "issue": "Computer running hot and fan is constantly loud",
+    "resolution": {
+      "windows": "Check CPU/GPU temperatures with HWMonitor. Clean dust from vents. Check Task Manager for high CPU processes. Update BIOS for fan curves. Re-apply thermal paste if experienced.",
+      "mac": "Check Activity Monitor CPU. Install Macs Fan Control to monitor temps. Clean vents with compressed air. Check kernel_task throttling. Run Apple Diagnostics.",
+      "linux": "Check temps with lm-sensors. Clean vents. Identify CPU-heavy processes. Install TLP or thermald for thermal management."
+    },
+    "issue_class": "Hardware - Thermal",
+    "commands": {
+      "windows": [
+        "wmic /namespace:\\\\root\\wmi path MSAcpi_ThermalZoneTemperature get CurrentTemperature"
+      ],
+      "mac": [
+        "sudo powermetrics --samplers smc -i 1 -n 1 | grep -i temp",
+        "pmset -g thermlog"
+      ],
+      "linux": [
+        "sensors",
+        "cat /sys/class/thermal/thermal_zone*/temp",
+        "sudo powertop"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "temperature",
+      "fan",
+      "thermal",
+      "overheating",
+      "hot"
+    ]
+  },
+  {
+    "id": "031",
+    "issue": "Internet speed is very slow even though connection shows full bars",
+    "resolution": {
+      "windows": "Run speed test. Check for bandwidth-hogging apps in Resource Monitor > Network tab. Disable Windows Update delivery optimization. Try flushing DNS and resetting TCP/IP stack.",
+      "mac": "Run speed test. Check Activity Monitor > Network tab for bandwidth usage. Check for iCloud sync or Time Machine backup in progress. Try switching DNS to 8.8.8.8.",
+      "linux": "Run speed test with speedtest-cli. Check bandwidth usage with iftop or nethogs. Check for background package updates. Try switching DNS in /etc/resolv.conf."
+    },
+    "issue_class": "Network - Speed",
+    "commands": {
+      "windows": [
+        "resmon",
+        "netsh int tcp reset",
+        "ipconfig /flushdns"
+      ],
+      "mac": [
+        "networkQuality",
+        "sudo killall -HUP mDNSResponder"
+      ],
+      "linux": [
+        "speedtest-cli",
+        "sudo iftop",
+        "sudo nethogs",
+        "cat /etc/resolv.conf"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "speed",
+      "slow",
+      "bandwidth",
+      "network"
+    ]
+  },
+  {
+    "id": "032",
+    "issue": "Proxy settings not working, cannot access internal company websites",
+    "resolution": {
+      "windows": "Check proxy settings in Settings > Network > Proxy. Verify PAC file URL if using auto-config. Check Internet Options > Connections > LAN settings. Clear proxy cache. Ensure correct proxy exceptions for internal domains.",
+      "mac": "Check System Settings > Network > Wi-Fi > Details > Proxies. Verify PAC URL or manual proxy IP/port. Add internal domains to bypass list. Try networksetup to reset proxy.",
+      "linux": "Check environment variables HTTP_PROXY and HTTPS_PROXY. Verify /etc/environment or ~/.bashrc proxy settings. Check if proxy is set in browser separately. Try curl with --proxy flag to test."
+    },
+    "issue_class": "Network - Proxy",
+    "commands": {
+      "windows": [
+        "netsh winhttp show proxy",
+        "netsh winhttp reset proxy",
+        "inetcpl.cpl"
+      ],
+      "mac": [
+        "networksetup -getwebproxy Wi-Fi",
+        "networksetup -setwebproxystate Wi-Fi off"
+      ],
+      "linux": [
+        "echo ",
+        "env | grep -i proxy",
+        "curl -v --proxy http://proxy:8080 https://google.com"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "proxy",
+      "pac",
+      "internal",
+      "network"
+    ]
+  },
+  {
+    "id": "033",
+    "issue": "Firewall blocking application from accessing the internet",
+    "resolution": {
+      "windows": "Check Windows Defender Firewall > Allow an app through firewall. Add exception for the blocked application. Check both Private and Public network profiles. Review Windows Firewall log.",
+      "mac": "Check System Settings > Network > Firewall. Add the app to allowed incoming connections. If using Little Snitch or similar, check its rules. Try temporarily disabling firewall to confirm it is the cause.",
+      "linux": "Check iptables or nftables rules. Add ACCEPT rule for the application port. Check if UFW is blocking the connection. Review firewall logs in /var/log/ufw.log or journalctl."
+    },
+    "issue_class": "Network - Firewall",
+    "commands": {
+      "windows": [
+        "netsh advfirewall firewall show rule name=all",
+        "netsh advfirewall firewall add rule name=\"AppName\" dir=out action=allow program=\"C:\\path\u0007pp.exe\""
+      ],
+      "mac": [
+        "sudo /usr/libexec/ApplicationFirewall/socketfilterfw --listapps",
+        "sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /path/to/app"
+      ],
+      "linux": [
+        "sudo iptables -L -n",
+        "sudo ufw status verbose",
+        "sudo ufw allow 8080/tcp",
+        "sudo journalctl -k | grep BLOCK"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "firewall",
+      "blocked",
+      "port",
+      "network"
+    ]
+  },
+  {
+    "id": "034",
+    "issue": "Ethernet cable plugged in but no network connection detected",
+    "resolution": {
+      "windows": "Check Device Manager for ethernet adapter status. Try disabling and re-enabling the adapter. Update or reinstall network driver. Check if cable is Cat5e/Cat6 and not damaged. Try a different port on the switch.",
+      "mac": "Check System Settings > Network for Ethernet status. Try a different cable and port. Check if USB-C/Thunderbolt ethernet adapter needs a driver. Renew DHCP lease.",
+      "linux": "Check if interface is up with ip link. Verify cable connection with ethtool. Restart networking service. Check if driver is loaded with lsmod. Try DHCP renewal."
+    },
+    "issue_class": "Network - Ethernet",
+    "commands": {
+      "windows": [
+        "ipconfig /all",
+        "netsh interface show interface",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "ifconfig en0",
+        "networksetup -listallhardwareports"
+      ],
+      "linux": [
+        "ip link show",
+        "sudo ethtool eth0",
+        "sudo dhclient eth0",
+        "lsmod | grep -i eth"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "ethernet",
+      "cable",
+      "network",
+      "wired",
+      "no connection"
+    ]
+  },
+  {
+    "id": "035",
+    "issue": "Cannot access specific website but other sites work fine",
+    "resolution": {
+      "windows": "Check if site is blocked by company firewall or DNS filter. Try accessing via IP address. Clear browser cache and cookies for that site. Check hosts file for redirects. Try a different DNS server.",
+      "mac": "Check /etc/hosts for entries redirecting the domain. Try different DNS (8.8.8.8). Clear browser cache. Try Safari if Chrome fails or vice versa. Check if site is blocked by content filter.",
+      "linux": "Check /etc/hosts. Try dig or nslookup to check DNS resolution. Test with curl to isolate browser vs system issue. Check iptables for specific domain blocks."
+    },
+    "issue_class": "Network - Access",
+    "commands": {
+      "windows": [
+        "nslookup problematic-site.com",
+        "tracert problematic-site.com",
+        "notepad C:\\Windows\\System32\\drivers\\etc\\hosts"
+      ],
+      "mac": [
+        "dig problematic-site.com",
+        "traceroute problematic-site.com",
+        "cat /etc/hosts"
+      ],
+      "linux": [
+        "dig problematic-site.com",
+        "traceroute problematic-site.com",
+        "curl -I https://problematic-site.com",
+        "cat /etc/hosts"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "website",
+      "blocked",
+      "dns",
+      "access",
+      "hosts"
+    ]
+  },
+  {
+    "id": "036",
+    "issue": "Getting IP address conflict error on the network",
+    "resolution": {
+      "windows": "Release and renew IP address. Check if static IP is set that conflicts with another device. Switch to DHCP if using static. Check DHCP server for duplicate leases.",
+      "mac": "Renew DHCP lease in Network settings. Check if manual IP is configured that conflicts. Switch to Using DHCP. Check router DHCP lease table for conflicts.",
+      "linux": "Release and renew DHCP lease. Check if /etc/network/interfaces has a static IP conflicting with another device. Use arping to detect duplicate IPs on the network."
+    },
+    "issue_class": "Network - IP Conflict",
+    "commands": {
+      "windows": [
+        "ipconfig /release",
+        "ipconfig /renew",
+        "arp -a"
+      ],
+      "mac": [
+        "sudo ipconfig set en0 DHCP",
+        "arp -a"
+      ],
+      "linux": [
+        "sudo dhclient -r",
+        "sudo dhclient",
+        "arping -D -I eth0 192.168.1.100",
+        "ip addr show"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "ip",
+      "conflict",
+      "dhcp",
+      "network",
+      "duplicate"
+    ]
+  },
+  {
+    "id": "037",
+    "issue": "Port forwarding not working, external access to service fails",
+    "resolution": {
+      "windows": "Verify Windows Firewall allows the port inbound. Check router port forwarding rules point to correct local IP. Ensure ISP is not blocking the port. Test with telnet or netcat from outside.",
+      "mac": "Check macOS firewall allows the port. Verify router port forwarding configuration. Check if application is listening on the correct port. Test with nc (netcat) locally first.",
+      "linux": "Verify the service is listening with ss or netstat. Check iptables FORWARD chain. Verify router port forwarding. Check if SELinux or AppArmor is blocking the port. Test locally with curl."
+    },
+    "issue_class": "Network - Port Forwarding",
+    "commands": {
+      "windows": [
+        "netstat -an | findstr LISTENING",
+        "netsh advfirewall firewall add rule name=\"Port 8080\" dir=in action=allow protocol=tcp localport=8080"
+      ],
+      "mac": [
+        "lsof -i -P | grep LISTEN",
+        "nc -zv localhost 8080"
+      ],
+      "linux": [
+        "ss -tlnp",
+        "sudo iptables -L FORWARD -n",
+        "sudo netstat -tlnp",
+        "curl localhost:8080"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "port",
+      "forwarding",
+      "firewall",
+      "access",
+      "network"
+    ]
+  },
+  {
+    "id": "038",
+    "issue": "WiFi keeps dropping and reconnecting every few minutes",
+    "resolution": {
+      "windows": "Disable WiFi power management in Device Manager > Network adapter > Properties > Power Management. Update wireless driver. Change WiFi channel on router to avoid interference. Forget and re-add network.",
+      "mac": "Check WiFi diagnostics (hold Option, click WiFi icon > Open Wireless Diagnostics). Remove all preferred networks and re-add. Check for interference from Bluetooth devices. Try creating a new network location.",
+      "linux": "Check dmesg for wireless errors. Disable power saving on the wireless interface. Update or try alternative wireless driver. Check if NetworkManager is switching between SSIDs."
+    },
+    "issue_class": "Network - WiFi",
+    "commands": {
+      "windows": [
+        "netsh wlan show interfaces",
+        "netsh wlan show all",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s",
+        "networksetup -listpreferredwirelessnetworks en0"
+      ],
+      "linux": [
+        "iwconfig",
+        "sudo iw dev wlan0 link",
+        "dmesg | grep -i wifi",
+        "sudo iwlist wlan0 scan | grep -E \"ESSID|Signal\""
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "wifi",
+      "dropping",
+      "disconnect",
+      "reconnect",
+      "wireless"
+    ]
+  },
+  {
+    "id": "039",
+    "issue": "Suspicious pop-ups appearing and browser redirecting to unknown sites",
+    "resolution": {
+      "windows": "Run full antivirus scan with Windows Defender or Malwarebytes. Check installed programs for unknown software. Reset browser settings. Check browser extensions for malicious add-ons. Check scheduled tasks for suspicious entries.",
+      "mac": "Check for suspicious profiles in System Settings > Privacy & Security > Profiles. Remove unknown browser extensions. Run Malwarebytes for Mac. Check /Library/LaunchAgents and ~/Library/LaunchAgents for suspicious plists.",
+      "linux": "Check for suspicious cron jobs and startup scripts. Scan with ClamAV. Check browser extensions. Verify no unauthorized packages were installed. Check /etc/hosts for redirects."
+    },
+    "issue_class": "Security - Malware",
+    "commands": {
+      "windows": [
+        "MpCmdRun.exe -Scan -ScanType 2",
+        "schtasks /query /fo LIST",
+        "wmic startup list full"
+      ],
+      "mac": [
+        "sudo profiles list",
+        "ls ~/Library/LaunchAgents/",
+        "ls /Library/LaunchDaemons/"
+      ],
+      "linux": [
+        "sudo clamscan -r /home",
+        "crontab -l",
+        "ls /etc/cron.d/",
+        "systemctl list-unit-files --type=service | grep enabled"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "malware",
+      "popup",
+      "redirect",
+      "virus",
+      "adware"
+    ]
+  },
+  {
+    "id": "040",
+    "issue": "Account got hacked and unauthorized access detected",
+    "resolution": {
+      "windows": "Immediately change password from a known-clean device. Enable MFA if not already set. Check sign-in activity in account settings. Revoke all active sessions. Check for mail forwarding rules that attacker may have set.",
+      "mac": "Change Apple ID and email passwords immediately from a clean device. Check Apple ID devices list and remove unknown ones. Enable two-factor authentication. Check iCloud settings for unauthorized devices.",
+      "linux": "Change password immediately. Check /var/log/auth.log for unauthorized SSH sessions. Revoke all SSH keys and regenerate. Check authorized_keys for unknown entries. Check for new user accounts created."
+    },
+    "issue_class": "Security - Breach",
+    "commands": {
+      "windows": [
+        "net user",
+        "query user",
+        "wevtutil qe Security /q:\"*[System[(EventID=4624)]]\" /f:text /c:10"
+      ],
+      "mac": [
+        "last",
+        "dscl . list /Users",
+        "log show --predicate \"subsystem == \"com.apple.Authorization\"\" --last 1d"
+      ],
+      "linux": [
+        "last -a",
+        "cat /var/log/auth.log | grep Accepted",
+        "cat ~/.ssh/authorized_keys",
+        "awk -F: \" >= 1000\" /etc/passwd"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "hacked",
+      "breach",
+      "unauthorized",
+      "security",
+      "compromised"
+    ]
+  },
+  {
+    "id": "041",
+    "issue": "Files encrypted and ransom message demanding payment appeared",
+    "resolution": {
+      "windows": "DISCONNECT from network immediately. Do NOT pay the ransom. Do not restart the computer. Take photo of the ransom note. Check if shadow copies still exist. Report to IT security team immediately.",
+      "mac": "DISCONNECT from network immediately. Do NOT pay. Do not restart. Check Time Machine backups on external drive. Report to IT security. Take screenshots of ransom message for incident response.",
+      "linux": "DISCONNECT from network immediately. Do NOT pay. Do not restart. Check if backups exist on separate storage. Preserve logs for forensics. Report to IT security team immediately."
+    },
+    "issue_class": "Security - Ransomware",
+    "commands": {
+      "windows": [
+        "vssadmin list shadows",
+        "wmic shadowcopy list brief"
+      ],
+      "mac": [
+        "tmutil listbackups",
+        "tmutil latestbackup"
+      ],
+      "linux": [
+        "ls /backup/",
+        "journalctl --since \"1 hour ago\""
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "ransomware",
+      "encrypted",
+      "ransom",
+      "security",
+      "incident"
+    ]
+  },
+  {
+    "id": "042",
+    "issue": "Suspicious process running with high resource usage that user did not start",
+    "resolution": {
+      "windows": "Check Task Manager > Details for the process. Right-click > Open file location to see where it lives. Check VirusTotal for the file hash. If suspicious, end the process and run full antivirus scan. Check startup entries.",
+      "mac": "Check Activity Monitor for the process. Right-click > Open Files and Ports to investigate. Check codesign status. If unsigned or suspicious, kill the process and scan with Malwarebytes.",
+      "linux": "Use ps aux to find the process. Check /proc/PID/exe to see the binary location. Verify with file and strings commands. Check if it was installed via package manager. Kill if suspicious and investigate."
+    },
+    "issue_class": "Security - Suspicious Process",
+    "commands": {
+      "windows": [
+        "tasklist /V /FI \"STATUS eq running\"",
+        "wmic process where \"name='suspicious.exe'\" get ExecutablePath",
+        "sigcheck -e -u C:\\path\to\file.exe"
+      ],
+      "mac": [
+        "ps aux | grep suspicious",
+        "codesign -dvv /path/to/app",
+        "lsof -p <PID>"
+      ],
+      "linux": [
+        "ps aux | grep suspicious",
+        "ls -la /proc/<PID>/exe",
+        "file /path/to/binary",
+        "sudo lsof -p <PID>"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "suspicious",
+      "process",
+      "malware",
+      "unknown",
+      "security"
+    ]
+  },
+  {
+    "id": "043",
+    "issue": "SSL certificate error when accessing internal company website",
+    "resolution": {
+      "windows": "Check system date/time is correct (expired certs often caused by wrong date). Import company root CA certificate into Trusted Root store via certmgr.msc. Clear browser SSL cache. Check if certificate is self-signed and needs manual trust.",
+      "mac": "Check date/time. Open Keychain Access > System > import the company CA certificate and set to Always Trust. Clear Safari/Chrome certificate cache. If using self-signed cert, manually trust in Keychain.",
+      "linux": "Check date/time. Copy company CA cert to /usr/local/share/ca-certificates/ and run update-ca-certificates. For browser-only, import in browser certificate settings. Check with openssl to verify the cert chain."
+    },
+    "issue_class": "Security - Certificate",
+    "commands": {
+      "windows": [
+        "certmgr.msc",
+        "certutil -addstore Root company-ca.crt"
+      ],
+      "mac": [
+        "sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain company-ca.crt"
+      ],
+      "linux": [
+        "sudo cp company-ca.crt /usr/local/share/ca-certificates/",
+        "sudo update-ca-certificates",
+        "openssl s_client -connect internal-site:443"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "ssl",
+      "certificate",
+      "https",
+      "trust",
+      "security"
+    ]
+  },
+  {
+    "id": "044",
+    "issue": "User account locked out after too many failed login attempts",
+    "resolution": {
+      "windows": "Check if account is locked in Active Directory Users and Computers. Unlock the account and reset password. Check account lockout policy (net accounts). Look for cached credentials on other devices causing repeated failures.",
+      "mac": "Check if FileVault or login window is locking after attempts. Reset password via Recovery Mode if needed. Check if Apple ID is locked at appleid.apple.com. Wait 30 minutes for automatic unlock or contact admin.",
+      "linux": "Check if account is locked with passwd -S. Unlock with passwd -u or faillock --reset. Check /etc/security/faillock.conf for lockout policy. Review auth.log for the source of failed attempts."
+    },
+    "issue_class": "Security - Lockout",
+    "commands": {
+      "windows": [
+        "net user <username> /domain",
+        "net user <username> /active:yes /domain",
+        "net accounts /domain"
+      ],
+      "mac": [
+        "dscl . -read /Users/<username> AuthenticationAuthority",
+        "pwpolicy -u <username> -getpolicy"
+      ],
+      "linux": [
+        "passwd -S <username>",
+        "sudo passwd -u <username>",
+        "sudo faillock --user <username> --reset",
+        "grep <username> /var/log/auth.log"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "lockout",
+      "locked",
+      "password",
+      "failed",
+      "attempts"
+    ]
+  },
+  {
+    "id": "045",
+    "issue": "Phishing email received and user may have clicked the link",
+    "resolution": {
+      "windows": "Immediately change email and AD password. Run full antivirus scan. Check browser history for where the link went. Report to IT security team. Check for any downloaded files and delete them. Enable MFA if not already active.",
+      "mac": "Change all passwords immediately. Run Malwarebytes scan. Check Downloads folder for suspicious files. Check Safari/Chrome history. Report phishing email to IT security. Enable MFA.",
+      "linux": "Change all passwords. Check browser downloads and history. Scan with ClamAV. Check for any new cron jobs or startup scripts that may have been installed. Report to IT security."
+    },
+    "issue_class": "Security - Phishing",
+    "commands": {
+      "windows": [
+        "MpCmdRun.exe -Scan -ScanType 2",
+        "dir /s /b %TEMP%\\*.exe"
+      ],
+      "mac": [
+        "ls -la ~/Downloads/",
+        "sudo find / -name \"*.dmg\" -mtime -1"
+      ],
+      "linux": [
+        "sudo clamscan -r ~/Downloads/",
+        "find ~ -name \"*.sh\" -mtime -1",
+        "crontab -l"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "phishing",
+      "email",
+      "link",
+      "security",
+      "scam"
+    ]
+  },
+  {
+    "id": "046",
+    "issue": "BitLocker or FileVault asking for recovery key and user cannot access drive",
+    "resolution": {
+      "windows": "Check Microsoft account at account.microsoft.com/devices for saved BitLocker recovery keys. Check if IT stored the key in Active Directory. Check if key was printed or saved to USB. If no key is found, data may be unrecoverable.",
+      "mac": "Try Apple ID to reset FileVault password. Check if IT has the institutional recovery key. Boot into Recovery Mode and try disk unlock. If no recovery key exists, the data is encrypted and inaccessible.",
+      "linux": "For LUKS encryption, the passphrase is required. Check if a recovery key file was saved. Try any backup passphrases. If no key exists, the data is unrecoverable. Check if key was added to a keyserver."
+    },
+    "issue_class": "Security - Encryption",
+    "commands": {
+      "windows": [
+        "manage-bde -status",
+        "manage-bde -protectors -get C:"
+      ],
+      "mac": [
+        "fdesetup status",
+        "fdesetup validaterecovery",
+        "diskutil apfs listVolumeGroups"
+      ],
+      "linux": [
+        "sudo cryptsetup luksDump /dev/sda2",
+        "sudo cryptsetup luksOpen /dev/sda2 my_volume"
+      ]
+    },
+    "escalation_required": true,
+    "tags": [
+      "bitlocker",
+      "filevault",
+      "luks",
+      "encryption",
+      "recovery key"
+    ]
+  },
+  {
+    "id": "047",
+    "issue": "VPN shows connected but cannot access internal resources",
+    "resolution": {
+      "windows": "Check if split tunneling is enabled (only VPN traffic goes through tunnel). Verify DNS is set to internal DNS server. Check route table for correct routing. Try pinging internal server by IP vs hostname to isolate DNS.",
+      "mac": "Check VPN settings for Send all traffic over VPN. Verify DNS configuration changes when VPN connects. Check routing table. Try accessing internal resources by IP address to isolate DNS issue.",
+      "linux": "Check if VPN pushed correct DNS and routes. Verify resolv.conf changed to internal DNS. Check routing table for split tunnel issues. Try ping by IP to rule out DNS."
+    },
+    "issue_class": "Network - VPN",
+    "commands": {
+      "windows": [
+        "route print",
+        "ipconfig /all",
+        "nslookup internal-server.company.com",
+        "ping internal-server-ip"
+      ],
+      "mac": [
+        "netstat -rn",
+        "scutil --dns",
+        "cat /etc/resolv.conf",
+        "ping internal-server-ip"
+      ],
+      "linux": [
+        "ip route",
+        "cat /etc/resolv.conf",
+        "resolvectl status",
+        "ping internal-server-ip"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "vpn",
+      "internal",
+      "split tunnel",
+      "dns",
+      "routing"
+    ]
+  },
+  {
+    "id": "048",
+    "issue": "Windows Defender or antivirus flagging a legitimate application as threat",
+    "resolution": {
+      "windows": "Add exclusion in Windows Security > Virus & Threat Protection > Manage settings > Exclusions. Verify the file is genuinely safe before excluding. Submit file to Microsoft for false positive review if needed.",
+      "mac": "Allow the app in System Settings > Privacy & Security. If Gatekeeper blocks it, right-click > Open. For XProtect false positives, check with developer for notarized version.",
+      "linux": "Add exclusion to ClamAV config (/etc/clamav/clamd.conf). For AppArmor/SELinux blocking, add the appropriate profile exception. Verify the binary is from a trusted source before excluding."
+    },
+    "issue_class": "Security - False Positive",
+    "commands": {
+      "windows": [
+        "Add-MpPreference -ExclusionPath \"C:\\path\to\u0007pp\"",
+        "Get-MpThreatDetection"
+      ],
+      "mac": [
+        "spctl --assess --verbose /path/to/app",
+        "xattr -d com.apple.quarantine /path/to/app"
+      ],
+      "linux": [
+        "sudo freshclam",
+        "sudo aa-complain /path/to/profile",
+        "sudo ausearch -m AVC"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "antivirus",
+      "false positive",
+      "defender",
+      "gatekeeper",
+      "blocked"
+    ]
+  },
+  {
+    "id": "049",
+    "issue": "Microsoft Teams not loading or stuck on white screen",
+    "resolution": {
+      "windows": "Clear Teams cache: close Teams, delete contents of %appdata%\\Microsoft\\Teams. If new Teams, clear %localappdata%\\Packages\\MSTeams_8wekyb3d8bbwe. Repair or reinstall via Settings > Apps.",
+      "mac": "Quit Teams. Clear cache: ~/Library/Application Support/Microsoft/Teams. Delete Keychain entries for Teams. Reinstall from Microsoft website if clearing cache does not help.",
+      "linux": "Close Teams. Remove ~/.config/Microsoft/Microsoft Teams/. If using snap, try snap remove teams-for-linux and reinstall. Check if libsecret and gnome-keyring are installed."
+    },
+    "issue_class": "Software - Teams",
+    "commands": {
+      "windows": [
+        "rd /s /q \"%appdata%\\Microsoft\\Teams\"",
+        "winget install Microsoft.Teams"
+      ],
+      "mac": [
+        "rm -rf ~/Library/Application\\ Support/Microsoft/Teams",
+        "rm -rf ~/Library/Caches/com.microsoft.teams"
+      ],
+      "linux": [
+        "rm -rf ~/.config/Microsoft\\ Microsoft\\ Teams/",
+        "snap remove teams-for-linux && snap install teams-for-linux"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "teams",
+      "microsoft",
+      "video",
+      "chat",
+      "white screen"
+    ]
+  },
+  {
+    "id": "050",
+    "issue": "Zoom audio or video not working in meetings",
+    "resolution": {
+      "windows": "Check Zoom Settings > Audio and Video for correct device selection. Check Privacy settings for camera and microphone access. Update Zoom to latest version. Try leaving and rejoining the meeting.",
+      "mac": "Check System Settings > Privacy > Camera and Microphone for Zoom permission. Check Zoom settings for correct audio/video device. Update Zoom. Try uninstalling and reinstalling.",
+      "linux": "Check PulseAudio/PipeWire settings. Verify Zoom has access to /dev/video0. Check if another app is using camera. Update Zoom to latest version. Try running from terminal for error output."
+    },
+    "issue_class": "Software - Video Conferencing",
+    "commands": {
+      "windows": [
+        "Get-PnpDevice -Class Camera",
+        "Get-PnpDevice -Class Media"
+      ],
+      "mac": [
+        "system_profiler SPCameraDataType",
+        "system_profiler SPAudioDataType"
+      ],
+      "linux": [
+        "v4l2-ctl --list-devices",
+        "pactl list sources short",
+        "zoom &"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "zoom",
+      "audio",
+      "video",
+      "meeting",
+      "camera"
+    ]
+  },
+  {
+    "id": "051",
+    "issue": "Microsoft Office activation failed or showing unlicensed product",
+    "resolution": {
+      "windows": "Check license status with ospp.vbs. Sign out and back into Microsoft 365 account. Try repairing Office via Settings > Apps > Microsoft 365 > Modify > Online Repair. Re-enter product key if standalone license.",
+      "mac": "Sign out of Microsoft 365 in any Office app. Remove credential entries from Keychain Access. Sign back in. If volume license, check with IT for KMS server connection. Try removing and reinstalling Office.",
+      "linux": "Office is not native to Linux. If using web version, check browser cookies and sign in again. If using Wine/CrossOver, check the license activation within the Wine prefix."
+    },
+    "issue_class": "Software - License",
+    "commands": {
+      "windows": [
+        "cscript \"C:\\Program Files\\Microsoft Office\\Office16\\ospp.vbs\" /dstatus",
+        "cscript ospp.vbs /act"
+      ],
+      "mac": [
+        "defaults read com.microsoft.office OfficeActivationEmailAddress"
+      ],
+      "linux": []
+    },
+    "escalation_required": false,
+    "tags": [
+      "office",
+      "activation",
+      "license",
+      "365",
+      "unlicensed"
+    ]
+  },
+  {
+    "id": "052",
+    "issue": "Slack messages not sending or showing connection error",
+    "resolution": {
+      "windows": "Check internet connection. Clear Slack cache: Ctrl+Shift+Del in Slack. Check if corporate firewall or proxy is blocking Slack domains. Try web version to isolate desktop app issue. Update Slack.",
+      "mac": "Check internet. Clear cache from Slack Help menu > Troubleshooting > Clear Cache. Check if proxy or firewall blocks Slack. Try web version. Update or reinstall Slack.",
+      "linux": "Check internet. Clear cache in ~/.config/Slack/. Check if proxy environment variables are set correctly. Try web version. If using snap, check snap connections for network access."
+    },
+    "issue_class": "Software - Messaging",
+    "commands": {
+      "windows": [
+        "nslookup slack.com",
+        "ping slack.com"
+      ],
+      "mac": [
+        "nslookup slack.com",
+        "curl -I https://slack.com"
+      ],
+      "linux": [
+        "nslookup slack.com",
+        "curl -I https://slack.com",
+        "snap connections slack"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "slack",
+      "messaging",
+      "connection",
+      "chat"
+    ]
+  },
+  {
+    "id": "053",
+    "issue": "Application window opens off-screen and cannot be moved back",
+    "resolution": {
+      "windows": "Right-click app in taskbar > Move > use arrow keys to bring it back. Or right-click taskbar > Cascade windows. Or use Win+Shift+Left/Right arrow to move between monitors.",
+      "mac": "Go to app menu bar > Window > Zoom to resize. Or hold Option and click green maximize button. Or use Mission Control to find the window. Change resolution temporarily to force windows back.",
+      "linux": "Use Alt+F7 then arrow keys to move window. Or use wmctrl to reposition. Or use xdotool to move the window to visible coordinates. Check display settings for phantom monitors."
+    },
+    "issue_class": "Software - Window Management",
+    "commands": {
+      "windows": [],
+      "mac": [],
+      "linux": [
+        "wmctrl -r \"Window Title\" -e 0,100,100,800,600",
+        "xdotool search --name \"Window Title\" windowmove 100 100"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "window",
+      "off-screen",
+      "display",
+      "monitor",
+      "move"
+    ]
+  },
+  {
+    "id": "054",
+    "issue": "PDF files not opening or showing blank pages",
+    "resolution": {
+      "windows": "Check default PDF app in Settings > Default Apps. Install or update Adobe Acrobat Reader. Try opening in browser. If specific PDF is blank, it may be corrupted. Try repairing Acrobat installation.",
+      "mac": "Try opening with Preview (default). If Preview fails, try Adobe Reader. Check if PDF is DRM-protected. Try printing to PDF to create a clean copy. Update macOS for latest Preview fixes.",
+      "linux": "Try opening with Evince, Okular, or Firefox built-in viewer. Install poppler-utils for command-line PDF tools. If file is corrupted, try qpdf to repair. Check file permissions."
+    },
+    "issue_class": "Software - PDF",
+    "commands": {
+      "windows": [
+        "assoc .pdf",
+        "ftype AcroExch.Document"
+      ],
+      "mac": [
+        "open -a Preview file.pdf",
+        "mdls file.pdf | grep kMDItemContentType"
+      ],
+      "linux": [
+        "xdg-open file.pdf",
+        "pdfinfo file.pdf",
+        "qpdf --check file.pdf"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "pdf",
+      "blank",
+      "adobe",
+      "reader",
+      "viewer"
+    ]
+  },
+  {
+    "id": "055",
+    "issue": "Application shows error: DLL file missing or not found",
+    "resolution": {
+      "windows": "Install latest Visual C++ Redistributable packages (2015-2022). Run System File Checker to repair system DLLs. Reinstall the affected application. Do NOT download DLLs from random websites \u2014 they can contain malware.",
+      "mac": "macOS uses dylib not DLL. If app reports missing library, reinstall the application. Check if Xcode Command Line Tools are needed. Try running from Terminal for verbose error output.",
+      "linux": "Check which library is missing with ldd. Install the required package with apt/dnf. Check if LD_LIBRARY_PATH is set correctly. Try ldconfig to refresh the library cache."
+    },
+    "issue_class": "Software - Missing Library",
+    "commands": {
+      "windows": [
+        "sfc /scannow",
+        "DISM /Online /Cleanup-Image /RestoreHealth"
+      ],
+      "mac": [
+        "xcode-select --install",
+        "otool -L /path/to/app"
+      ],
+      "linux": [
+        "ldd /path/to/binary",
+        "sudo ldconfig",
+        "apt search libname",
+        "sudo apt install libname"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "dll",
+      "library",
+      "missing",
+      "runtime",
+      "dependency"
+    ]
+  },
+  {
+    "id": "056",
+    "issue": "Application not responding and showing as Not Responding in title bar",
+    "resolution": {
+      "windows": "Wait 30 seconds \u2014 it may be processing. Check Task Manager for disk or CPU usage. If still hung, End Task and relaunch. If recurring, check Event Viewer Application log for errors. Try running in compatibility mode.",
+      "mac": "Wait for spinning beach ball to stop. If still hung, Force Quit from Apple menu or Cmd+Option+Esc. Check Activity Monitor for the process. If recurring, check Console for crash reports.",
+      "linux": "Check if process is in D state (uninterruptible sleep) with top. Try sending SIGTERM first, then SIGKILL. If GUI is frozen, switch to TTY with Ctrl+Alt+F2 and kill from there."
+    },
+    "issue_class": "Software - Hang",
+    "commands": {
+      "windows": [
+        "taskkill /IM appname.exe /F",
+        "taskmgr"
+      ],
+      "mac": [
+        "kill -9 <PID>",
+        "killall -9 AppName"
+      ],
+      "linux": [
+        "kill -15 <PID>",
+        "kill -9 <PID>",
+        "xkill"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "not responding",
+      "hang",
+      "frozen",
+      "force quit",
+      "kill"
+    ]
+  },
+  {
+    "id": "057",
+    "issue": "Excel or Word documents showing as read-only and cannot be edited",
+    "resolution": {
+      "windows": "Check if file is open by another user (co-authoring). Right-click file > Properties > uncheck Read-only. Check if file is on SharePoint and needs checkout. Repair Office installation.",
+      "mac": "Check file permissions in Get Info (Cmd+I). Check if file is locked (Get Info > Locked checkbox). If on OneDrive/SharePoint, check co-authoring status. Try saving as new copy.",
+      "linux": "Check file permissions with ls -la. Change with chmod if needed. If using LibreOffice, check if lock file (.~lock.filename) exists. Remove stale lock files."
+    },
+    "issue_class": "Software - Office",
+    "commands": {
+      "windows": [
+        "attrib -r filename.xlsx",
+        "icacls filename.xlsx"
+      ],
+      "mac": [
+        "chmod 644 filename.xlsx",
+        "xattr -c filename.xlsx"
+      ],
+      "linux": [
+        "chmod 644 filename.xlsx",
+        "ls -la .~lock.*",
+        "rm .~lock.filename.xlsx#"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "read-only",
+      "office",
+      "excel",
+      "word",
+      "permissions"
+    ]
+  },
+  {
+    "id": "058",
+    "issue": "Git push or pull failing with authentication error",
+    "resolution": {
+      "windows": "Check Credential Manager for stale Git credentials and remove them. Regenerate personal access token (PAT) if using GitHub/GitLab. Update Git to latest version. Switch from HTTPS to SSH if PAT keeps expiring.",
+      "mac": "Check Keychain Access for stale Git credentials. Remove and re-authenticate. Generate new PAT. Try git credential-osxkeychain erase. Switch to SSH keys for persistent auth.",
+      "linux": "Check ~/.git-credentials or credential helper config. Regenerate PAT. Remove cached credentials with git credential reject. Set up SSH keys for passwordless auth."
+    },
+    "issue_class": "Software - Development",
+    "commands": {
+      "windows": [
+        "cmdkey /list | findstr git",
+        "git config --global credential.helper manager-core"
+      ],
+      "mac": [
+        "git credential-osxkeychain erase",
+        "ssh -T git@github.com"
+      ],
+      "linux": [
+        "git config --global credential.helper store",
+        "git credential reject",
+        "ssh -T git@github.com"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "git",
+      "authentication",
+      "push",
+      "pull",
+      "credential"
+    ]
+  },
+  {
+    "id": "059",
+    "issue": "Python or Node.js command not found after installation",
+    "resolution": {
+      "windows": "Check if installation directory is in PATH environment variable. Re-run installer and check Add to PATH option. Use where command to find the binary. For Python, try py launcher.",
+      "mac": "Check if path is correct with which command. For Python, macOS ships python3 not python. Check ~/.zprofile or ~/.zshrc for PATH additions. Use brew to manage installs cleanly.",
+      "linux": "Check /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin with echo /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin. Use which or whereis to locate the binary. Check if installed to /usr/local/bin or ~/.local/bin. Add to PATH in ~/.bashrc or ~/.profile if needed."
+    },
+    "issue_class": "Software - Development",
+    "commands": {
+      "windows": [
+        "where python",
+        "py --version",
+        "echo %PATH%",
+        "setx PATH \"%PATH%;C:\\Python312\""
+      ],
+      "mac": [
+        "which python3",
+        "echo /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "brew list python",
+        "cat ~/.zprofile"
+      ],
+      "linux": [
+        "which python3",
+        "echo /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "whereis node",
+        "export PATH=/home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "python",
+      "node",
+      "path",
+      "command not found",
+      "development"
+    ]
+  },
+  {
+    "id": "060",
+    "issue": "Docker containers not starting or showing exit code errors",
+    "resolution": {
+      "windows": "Check Docker Desktop is running. Check WSL2 is installed and running. Check container logs with docker logs. Verify Docker has enough memory allocated in Settings > Resources. Check if Hyper-V is enabled.",
+      "mac": "Check Docker Desktop is running (whale icon in menu bar). Check container logs. Verify Docker has enough memory in Settings > Resources. Try restarting Docker Desktop. Check if Rosetta is needed for Apple Silicon.",
+      "linux": "Check Docker daemon is running. Check container logs. Verify user is in docker group. Check disk space (Docker images can fill up fast). Check if port is already in use."
+    },
+    "issue_class": "Software - DevOps",
+    "commands": {
+      "windows": [
+        "docker ps -a",
+        "docker logs <container_id>",
+        "wsl --status"
+      ],
+      "mac": [
+        "docker ps -a",
+        "docker logs <container_id>",
+        "docker system df"
+      ],
+      "linux": [
+        "sudo systemctl status docker",
+        "docker ps -a",
+        "docker logs <container_id>",
+        "groups  | grep docker",
+        "docker system prune"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "docker",
+      "container",
+      "devops",
+      "wsl",
+      "daemon"
+    ]
+  },
+  {
+    "id": "061",
+    "issue": "OneDrive or Google Drive sync not working, files stuck syncing",
+    "resolution": {
+      "windows": "For OneDrive: reset with wsreset or OneDrive /reset. Check available disk space. Verify file names do not contain invalid characters. Unlink and re-link account. For Google Drive, restart Drive for Desktop.",
+      "mac": "For OneDrive: quit and relaunch from Applications. Check Keychain for expired credentials. For Google Drive: quit Drive for Desktop, clear cache in ~/Library/Application Support/Google/DriveFS, relaunch.",
+      "linux": "Google Drive has no official Linux client \u2014 use rclone or insync. For OneDrive, use abraunegg/onedrive client. Check sync status with client-specific commands. Verify authentication tokens."
+    },
+    "issue_class": "Software - Cloud Storage",
+    "commands": {
+      "windows": [
+        "%localappdata%\\Microsoft\\OneDrive\\onedrive.exe /reset",
+        "Get-Process OneDrive"
+      ],
+      "mac": [
+        "killall OneDrive",
+        "killall Google\\ Drive"
+      ],
+      "linux": [
+        "onedrive --synchronize --verbose",
+        "rclone sync remote:/ ~/gdrive/ --dry-run"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "onedrive",
+      "google drive",
+      "sync",
+      "cloud",
+      "storage"
+    ]
+  },
+  {
+    "id": "062",
+    "issue": "Antivirus scan taking extremely long time and slowing computer",
+    "resolution": {
+      "windows": "Switch from Full Scan to Quick Scan for daily use. Add exclusions for known-safe directories (development folders, VMs). Schedule full scans during off-hours. Check if real-time protection is scanning every file operation.",
+      "mac": "macOS XProtect runs automatically and is lightweight. If third-party antivirus is slow, add exclusions for large directories. Consider removing third-party AV if XProtect and Gatekeeper are sufficient.",
+      "linux": "ClamAV on-access scanning can be heavy. Schedule clamscan during off-hours. Add exclusions for /proc, /sys, /dev, and large data directories. Use clamdscan instead of clamscan for faster daemon-based scanning."
+    },
+    "issue_class": "Software - Antivirus",
+    "commands": {
+      "windows": [
+        "Get-MpPreference | Select ScanScheduleDay",
+        "Set-MpPreference -ScanScheduleQuickScanTime 02:00:00",
+        "Add-MpPreference -ExclusionPath \"C:\\Dev\""
+      ],
+      "mac": [
+        "sudo launchctl list | grep -i virus"
+      ],
+      "linux": [
+        "clamdscan --multiscan /home/",
+        "sudo freshclam",
+        "cat /etc/clamav/clamd.conf | grep Exclude"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "antivirus",
+      "scan",
+      "slow",
+      "exclusion",
+      "performance"
+    ]
+  },
+  {
+    "id": "063",
+    "issue": "Windows error code 0x80070005 Access Denied during system operation",
+    "resolution": {
+      "windows": "This is a permissions error. Run the operation as Administrator. Check folder/file ownership with icacls. If during Windows Update, reset Windows Update components. Take ownership of the file if needed.",
+      "mac": "macOS equivalent is permission denied. Check file ownership with ls -la. Use sudo for system operations. Repair disk permissions in Disk Utility (older macOS). Reset privacy permissions database if needed.",
+      "linux": "Permission denied error. Check file ownership and permissions. Use sudo for system operations. Check if SELinux or AppArmor is denying access. Verify user group membership."
+    },
+    "issue_class": "OS - Permissions",
+    "commands": {
+      "windows": [
+        "icacls \"C:\\path\to\file\" /grant Users:F",
+        "takeown /f \"C:\\path\to\file\" /r",
+        "net stop wuauserv && net start wuauserv"
+      ],
+      "mac": [
+        "ls -la /path/to/file",
+        "sudo chown  /path/to/file",
+        "chmod 755 /path/to/file"
+      ],
+      "linux": [
+        "ls -la /path/to/file",
+        "sudo chown : /path/to/file",
+        "chmod 755 /path/to/file",
+        "getenforce"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "permission",
+      "access denied",
+      "0x80070005",
+      "ownership"
+    ]
+  },
+  {
+    "id": "064",
+    "issue": "Windows Update stuck downloading or failing with error code",
+    "resolution": {
+      "windows": "Stop Windows Update service, clear the download cache, restart the service. Run Windows Update Troubleshooter. If specific KB fails, download and install it manually from Microsoft Update Catalog. Check disk space.",
+      "mac": "For macOS update stuck, try restarting and re-downloading. Check disk space. Try updating from Terminal with softwareupdate. If stuck in boot loop, boot into Recovery and reinstall macOS.",
+      "linux": "For apt: fix broken packages and clean cache. For dnf/yum: clean metadata cache. Check if lock file exists preventing updates. Verify repository URLs are reachable."
+    },
+    "issue_class": "OS - Update",
+    "commands": {
+      "windows": [
+        "net stop wuauserv",
+        "rd /s /q C:\\Windows\\SoftwareDistribution",
+        "net start wuauserv",
+        "msdt /id WindowsUpdateDiagnostic"
+      ],
+      "mac": [
+        "sudo softwareupdate --list",
+        "sudo softwareupdate -ia",
+        "sudo softwareupdate --fetch-full-installer"
+      ],
+      "linux": [
+        "sudo apt update && sudo apt upgrade --fix-broken",
+        "sudo rm /var/lib/dpkg/lock*",
+        "sudo dpkg --configure -a",
+        "sudo dnf clean all"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "update",
+      "windows update",
+      "stuck",
+      "download",
+      "error"
+    ]
+  },
+  {
+    "id": "065",
+    "issue": "Startup takes extremely long, over 5 minutes to reach desktop",
+    "resolution": {
+      "windows": "Check startup programs in Task Manager > Startup tab \u2014 disable unnecessary ones. Run msconfig and check boot options. Check Event Viewer for slow startup warnings. Enable Fast Startup if disabled. Check disk health.",
+      "mac": "Check Login Items in System Settings > General > Login Items. Remove unnecessary startup apps. Reset NVRAM. Check for slow-loading kernel extensions. Try Safe Boot to diagnose (hold Shift on boot).",
+      "linux": "Check boot time with systemd-analyze. Identify slow services with systemd-analyze blame. Disable unnecessary services. Check if fsck is running on boot. Check for slow DHCP or DNS resolution at startup."
+    },
+    "issue_class": "Performance - Boot",
+    "commands": {
+      "windows": [
+        "msconfig",
+        "bcdedit /enum",
+        "eventvwr.msc"
+      ],
+      "mac": [
+        "sudo nvram -c",
+        "sudo kextstat | wc -l"
+      ],
+      "linux": [
+        "systemd-analyze",
+        "systemd-analyze blame",
+        "systemd-analyze critical-chain",
+        "sudo systemctl disable slow-service"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "startup",
+      "boot",
+      "slow",
+      "login",
+      "performance"
+    ]
+  },
+  {
+    "id": "066",
+    "issue": "Dual boot GRUB menu not showing or booting wrong OS by default",
+    "resolution": {
+      "windows": "If GRUB disappeared after Windows update, boot Linux live USB and reinstall GRUB. Use bcdedit in Windows to add Linux entry if needed. Check UEFI boot order in BIOS.",
+      "mac": "Hold Option key on boot to see all bootable volumes. Use Startup Disk in System Settings to set default. For Boot Camp, reinstall Boot Camp drivers. Check if rEFInd is needed.",
+      "linux": "Reinstall GRUB from live USB using chroot. Edit /etc/default/grub to change default OS and timeout. Run update-grub. Check UEFI boot order with efibootmgr."
+    },
+    "issue_class": "OS - Boot",
+    "commands": {
+      "windows": [
+        "bcdedit /enum firmware",
+        "msconfig"
+      ],
+      "mac": [
+        "bless --info",
+        "sudo systemsetup -liststartupdisks"
+      ],
+      "linux": [
+        "sudo grub-install /dev/sda",
+        "sudo update-grub",
+        "efibootmgr -v",
+        "cat /etc/default/grub"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "grub",
+      "dual boot",
+      "boot",
+      "uefi",
+      "bios"
+    ]
+  },
+  {
+    "id": "067",
+    "issue": "Registry error or corrupted registry preventing normal Windows operation",
+    "resolution": {
+      "windows": "Run System File Checker and DISM first. Try System Restore to a point before the corruption. If registry is severely damaged, boot from recovery and restore registry hives from RegBack folder. Do NOT use registry cleaners.",
+      "mac": "macOS does not have a registry. Equivalent issues are corrupted preferences plists. Delete the problematic plist from ~/Library/Preferences/ and relaunch the app. Use defaults delete command.",
+      "linux": "Linux does not have a registry. Configuration issues are in individual config files. Identify the corrupted config and restore from backup or reset to defaults. Check /etc/ and ~/.config/."
+    },
+    "issue_class": "OS - Registry",
+    "commands": {
+      "windows": [
+        "sfc /scannow",
+        "DISM /Online /Cleanup-Image /RestoreHealth",
+        "rstrui.exe",
+        "regedit"
+      ],
+      "mac": [
+        "defaults read com.app.name",
+        "defaults delete com.app.name"
+      ],
+      "linux": [
+        "ls ~/.config/",
+        "dpkg-reconfigure package-name"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "registry",
+      "corrupted",
+      "plist",
+      "config",
+      "repair"
+    ]
+  },
+  {
+    "id": "068",
+    "issue": "Group Policy settings not applying or gpupdate failing",
+    "resolution": {
+      "windows": "Run gpupdate /force. Check gpresult for applied policies. Verify domain connectivity. Check if the computer is in the correct OU. Clear the Group Policy cache if needed.",
+      "mac": "Macs use MDM profiles instead of Group Policy. Check System Settings > Privacy & Security > Profiles. Verify MDM enrollment status. Contact IT if profiles are missing.",
+      "linux": "Linux joined to AD uses SSSD or Samba for policy. Check SSSD status. Verify Kerberos ticket with klist. Check if realm join is active. Policies may need manual enforcement via scripts."
+    },
+    "issue_class": "OS - Group Policy",
+    "commands": {
+      "windows": [
+        "gpupdate /force",
+        "gpresult /r",
+        "gpresult /h report.html",
+        "rsop.msc"
+      ],
+      "mac": [
+        "sudo profiles list",
+        "sudo profiles renew -type enrollment"
+      ],
+      "linux": [
+        "sudo sssctl domain-status company.com",
+        "klist",
+        "realm list",
+        "sudo adcli info company.com"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "group policy",
+      "gpo",
+      "mdm",
+      "domain",
+      "active directory"
+    ]
+  },
+  {
+    "id": "069",
+    "issue": "Systemd service failing to start with error in journal",
+    "resolution": {
+      "windows": "Windows uses Services (services.msc). Check service properties for startup type and dependencies. Check Event Viewer for service errors. Try restarting dependent services first.",
+      "mac": "macOS uses launchd. Check service status with launchctl. Review plist file for errors. Check Console for launchd error messages. Try unloading and reloading the service.",
+      "linux": "Check service status for error details. Read full journal output for the unit. Check the service unit file for syntax errors. Verify ExecStart path exists and is executable. Check dependencies with systemctl list-dependencies."
+    },
+    "issue_class": "OS - Service",
+    "commands": {
+      "windows": [
+        "services.msc",
+        "sc query ServiceName",
+        "sc config ServiceName start=auto"
+      ],
+      "mac": [
+        "launchctl list | grep service",
+        "sudo launchctl load /Library/LaunchDaemons/service.plist",
+        "sudo launchctl bootout system /Library/LaunchDaemons/service.plist"
+      ],
+      "linux": [
+        "sudo systemctl status service-name",
+        "sudo journalctl -u service-name -n 50",
+        "systemctl cat service-name",
+        "systemctl list-dependencies service-name"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "systemd",
+      "service",
+      "launchd",
+      "startup",
+      "failed"
+    ]
+  },
+  {
+    "id": "070",
+    "issue": "Cron job or scheduled task not running at expected time",
+    "resolution": {
+      "windows": "Check Task Scheduler for the task status and last run result. Verify trigger conditions (time, user logon, etc). Check Run whether user is logged on or not. Verify the action path is correct.",
+      "mac": "Check launchd plist for the schedule. Verify plist syntax with plutil. Check if the script has execute permissions. Use launchctl list to verify it is loaded. Check Console for errors.",
+      "linux": "Verify cron syntax is correct. Check if cron daemon is running. Check /var/log/cron or journalctl for execution logs. Verify script has +x permission. Check PATH in cron environment (limited by default)."
+    },
+    "issue_class": "OS - Scheduling",
+    "commands": {
+      "windows": [
+        "schtasks /query /tn \"TaskName\" /fo LIST /v",
+        "taskschd.msc"
+      ],
+      "mac": [
+        "launchctl list | grep task",
+        "plutil -lint /path/to/plist"
+      ],
+      "linux": [
+        "crontab -l",
+        "systemctl status cron",
+        "grep CRON /var/log/syslog",
+        "journalctl -u cron --since today"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "cron",
+      "scheduled task",
+      "automation",
+      "timer",
+      "launchd"
+    ]
+  },
+  {
+    "id": "071",
+    "issue": "Environment variables not being recognized or PATH is broken",
+    "resolution": {
+      "windows": "Check System Properties > Environment Variables. Verify PATH does not exceed character limit. Check for duplicate or malformed entries. Changes require opening a new terminal to take effect.",
+      "mac": "Edit ~/.zprofile or ~/.zshrc (zsh is default since Catalina). Source the file after editing. For system-wide, edit /etc/paths or add file to /etc/paths.d/. Restart terminal.",
+      "linux": "Edit ~/.bashrc or ~/.profile for user variables. Edit /etc/environment for system-wide. Source the file or log out/in. Check that the file does not have syntax errors. Use printenv to verify."
+    },
+    "issue_class": "OS - Environment",
+    "commands": {
+      "windows": [
+        "echo %PATH%",
+        "setx PATH \"%PATH%;C:\new\\path\"",
+        "systempropertiesadvanced"
+      ],
+      "mac": [
+        "echo /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "cat ~/.zprofile",
+        "source ~/.zshrc",
+        "cat /etc/paths"
+      ],
+      "linux": [
+        "echo /home/claude/.npm-global/bin:/home/claude/.local/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "printenv",
+        "source ~/.bashrc",
+        "cat /etc/environment"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "path",
+      "environment",
+      "variables",
+      "bash",
+      "profile"
+    ]
+  },
+  {
+    "id": "072",
+    "issue": "Screen resolution wrong or cannot change display settings",
+    "resolution": {
+      "windows": "Update display driver. Check Display Settings for available resolutions. If custom resolution needed, use Intel/NVIDIA/AMD control panel. Check if external monitor is overriding resolution. Try Safe Mode to reset.",
+      "mac": "Check System Settings > Displays. Hold Option and click Scaled to see all resolutions. Reset NVRAM if display settings are corrupted. Check if external display is detected correctly.",
+      "linux": "Use xrandr to list and set resolutions. Create custom modeline if needed. Check if correct GPU driver is installed. For Wayland, use wlr-randr or GNOME Settings."
+    },
+    "issue_class": "OS - Display",
+    "commands": {
+      "windows": [
+        "desk.cpl",
+        "wmic desktopmonitor get screenheight,screenwidth"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType",
+        "sudo nvram -c"
+      ],
+      "linux": [
+        "xrandr",
+        "xrandr --output HDMI-1 --mode 1920x1080",
+        "cvt 1920 1080 60"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "resolution",
+      "display",
+      "screen",
+      "graphics",
+      "driver"
+    ]
+  },
+  {
+    "id": "073",
+    "issue": "Sleep or hibernate not working properly, computer wakes up unexpectedly",
+    "resolution": {
+      "windows": "Check what woke the computer with powercfg -lastwake. Disable wake timers in Power Options. Check which devices can wake the computer. Disable network adapter wake ability if not needed. Update BIOS.",
+      "mac": "Check pmset -g log for wake reasons. Disable Power Nap in Battery settings. Check if Bluetooth devices are waking the Mac. Disable Wake for network access. Reset SMC.",
+      "linux": "Check /proc/acpi/wakeup for wake-capable devices. Disable wake on specific devices. Check systemd sleep settings. Review journalctl for wake events. Check if USB devices are triggering wake."
+    },
+    "issue_class": "OS - Power Management",
+    "commands": {
+      "windows": [
+        "powercfg -lastwake",
+        "powercfg -devicequery wake_armed",
+        "powercfg -waketimers"
+      ],
+      "mac": [
+        "pmset -g log | grep Wake",
+        "pmset -g assertions",
+        "sudo pmset -a disablesleep 0"
+      ],
+      "linux": [
+        "cat /proc/acpi/wakeup",
+        "journalctl -b | grep -i wake",
+        "systemctl suspend"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "sleep",
+      "hibernate",
+      "wake",
+      "power",
+      "standby"
+    ]
+  },
+  {
+    "id": "074",
+    "issue": "Locale or language settings wrong, garbled text or wrong keyboard layout",
+    "resolution": {
+      "windows": "Check Settings > Time & Language > Language for display language and keyboard. Add or remove keyboard layouts. Check Region settings for date/number format. Install language packs if missing.",
+      "mac": "Check System Settings > General > Language & Region. Add input sources in Keyboard settings. Check that correct locale is selected. Drag languages to reorder priority.",
+      "linux": "Check locale settings with locale command. Reconfigure locales with dpkg-reconfigure. Set correct keyboard layout. Check /etc/default/locale. Generate missing locales."
+    },
+    "issue_class": "OS - Locale",
+    "commands": {
+      "windows": [
+        "intl.cpl",
+        "Get-WinSystemLocale",
+        "Get-WinUserLanguageList"
+      ],
+      "mac": [
+        "defaults read -g AppleLocale",
+        "defaults read -g AppleLanguages"
+      ],
+      "linux": [
+        "locale",
+        "localectl status",
+        "sudo dpkg-reconfigure locales",
+        "sudo localectl set-locale LANG=en_US.UTF-8"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "locale",
+      "language",
+      "keyboard",
+      "encoding",
+      "layout"
+    ]
+  },
+  {
+    "id": "075",
+    "issue": "macOS Gatekeeper blocking app from opening, says developer cannot be verified",
+    "resolution": {
+      "windows": "Windows SmartScreen equivalent: right-click > Properties > Unblock checkbox. Or click More info > Run anyway on the SmartScreen dialog. Add exception in Windows Security.",
+      "mac": "Right-click the app and select Open (bypasses Gatekeeper once). For persistent fix, go to System Settings > Privacy & Security and click Open Anyway. Remove quarantine attribute with xattr command.",
+      "linux": "Linux does not have Gatekeeper. Equivalent is file execute permission. Use chmod +x to make file executable. Check if AppArmor or SELinux is blocking. Verify file integrity."
+    },
+    "issue_class": "OS - Security",
+    "commands": {
+      "windows": [
+        "Unblock-File -Path C:\\path\to\file.exe"
+      ],
+      "mac": [
+        "sudo xattr -rd com.apple.quarantine /path/to/app.app",
+        "spctl --add /path/to/app.app",
+        "spctl --assess --verbose /path/to/app.app"
+      ],
+      "linux": [
+        "chmod +x /path/to/binary",
+        "sudo aa-status",
+        "getenforce"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "gatekeeper",
+      "smartscreen",
+      "blocked",
+      "developer",
+      "notarization"
+    ]
+  },
+  {
+    "id": "076",
+    "issue": "Docking station not detecting all connected peripherals",
+    "resolution": {
+      "windows": "Update docking station firmware from manufacturer. Update USB and display drivers. Check if dock needs its own power adapter. Try connecting directly to test if dock is the issue. Check Display Manager for extended displays.",
+      "mac": "Check if dock is Thunderbolt/USB-C compatible with your Mac model. Update macOS for latest driver support. Check System Information for connected devices. Some docks need DisplayLink driver installed.",
+      "linux": "Check dmesg for dock detection. Install DisplayLink driver if required. Check if USB-C alt mode is supported by your kernel. Try a different USB-C cable (not all cables support video)."
+    },
+    "issue_class": "Hardware - Docking Station",
+    "commands": {
+      "windows": [
+        "devmgmt.msc",
+        "pnputil /enum-devices"
+      ],
+      "mac": [
+        "system_profiler SPThunderboltDataType",
+        "system_profiler SPUSBDataType"
+      ],
+      "linux": [
+        "dmesg | grep -i dock",
+        "lsusb -t",
+        "xrandr --listproviders"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "docking station",
+      "dock",
+      "usb-c",
+      "thunderbolt",
+      "peripherals"
+    ]
+  },
+  {
+    "id": "077",
+    "issue": "Keyboard keys typing wrong characters or not responding",
+    "resolution": {
+      "windows": "Check keyboard layout in Settings > Language. Run hardware troubleshooter. Try on-screen keyboard to test if it is hardware. Clean under stuck keys. Update or reinstall keyboard driver.",
+      "mac": "Check input source in menu bar. Clean keyboard (especially butterfly keyboards). Try external keyboard to isolate. Check Accessibility > Slow Keys is disabled. Reset SMC.",
+      "linux": "Check keyboard layout with setxkbmap. Verify correct layout in settings. Test with xev to see raw key events. Check if xmodmap is remapping keys. Clean keyboard physically."
+    },
+    "issue_class": "Hardware - Keyboard",
+    "commands": {
+      "windows": [
+        "osk",
+        "devmgmt.msc",
+        "Get-PnpDevice -Class Keyboard"
+      ],
+      "mac": [
+        "defaults read com.apple.HIToolbox AppleCurrentKeyboardLayoutInputSourceID"
+      ],
+      "linux": [
+        "setxkbmap -query",
+        "xev",
+        "cat /etc/default/keyboard",
+        "xmodmap -pke"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "keyboard",
+      "keys",
+      "layout",
+      "typing",
+      "input"
+    ]
+  },
+  {
+    "id": "078",
+    "issue": "Touchpad not working or gestures not responding",
+    "resolution": {
+      "windows": "Check if touchpad is disabled (Fn+F7 or similar). Update touchpad driver in Device Manager. Check Settings > Bluetooth & Devices > Touchpad. Verify touchpad is not disabled when mouse is connected.",
+      "mac": "Check System Settings > Trackpad for gesture settings. If completely dead, try resetting SMC and NVRAM. Check if external mouse is overriding trackpad (disable this in Accessibility settings).",
+      "linux": "Check if touchpad is detected with xinput list. Enable if disabled. Install synaptics or libinput driver. Check /etc/X11/xorg.conf.d/ for touchpad config. Verify kernel module is loaded."
+    },
+    "issue_class": "Hardware - Touchpad",
+    "commands": {
+      "windows": [
+        "devmgmt.msc",
+        "Get-PnpDevice -Class Mouse"
+      ],
+      "mac": [
+        "defaults read com.apple.AppleMultitouchTrackpad"
+      ],
+      "linux": [
+        "xinput list",
+        "xinput enable <device-id>",
+        "libinput list-devices",
+        "modprobe psmouse"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "touchpad",
+      "trackpad",
+      "gestures",
+      "mouse",
+      "input"
+    ]
+  },
+  {
+    "id": "079",
+    "issue": "RAM installed but system only showing partial memory available",
+    "resolution": {
+      "windows": "Check if 32-bit OS is limiting to 4GB. Check msconfig > Boot > Maximum memory is unchecked. Reseat RAM sticks. Run memory diagnostic. Check BIOS for memory recognized vs OS reported.",
+      "mac": "Check About This Mac for recognized RAM. If lower than installed, reseat the modules (older Macs). For soldered RAM (2012+), this is a hardware issue. Run Apple Diagnostics.",
+      "linux": "Check with free -h and dmidecode. Verify 64-bit kernel with uname -m. Check BIOS for recognized RAM. Reseat RAM. Run memtest86+ to check for faulty modules."
+    },
+    "issue_class": "Hardware - RAM",
+    "commands": {
+      "windows": [
+        "systeminfo | findstr Memory",
+        "wmic memorychip get capacity,speed,manufacturer",
+        "mdsched.exe",
+        "msconfig"
+      ],
+      "mac": [
+        "system_profiler SPMemoryDataType",
+        "sysctl hw.memsize"
+      ],
+      "linux": [
+        "free -h",
+        "sudo dmidecode -t memory",
+        "uname -m",
+        "cat /proc/meminfo | head -5"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "ram",
+      "memory",
+      "partial",
+      "recognized",
+      "bios"
+    ]
+  },
+  {
+    "id": "080",
+    "issue": "SSD or NVMe drive running slow compared to expected speeds",
+    "resolution": {
+      "windows": "Check if TRIM is enabled. Verify AHCI mode in BIOS (not IDE). Check drive health with CrystalDiskInfo. Ensure NVMe driver is up to date. Check if drive is nearly full (keep 10-20% free).",
+      "mac": "Check drive health in Disk Utility. Verify TRIM is enabled (enabled by default on Apple SSDs). Check if drive is nearly full. For third-party SSDs, install trimforce. Run First Aid.",
+      "linux": "Check if TRIM is enabled with fstrim. Verify drive uses AHCI in BIOS. Check drive health with smartctl. Test speed with hdparm or fio. Check scheduler is set correctly for SSD."
+    },
+    "issue_class": "Hardware - Storage",
+    "commands": {
+      "windows": [
+        "fsutil behavior query DisableDeleteNotify",
+        "winsat disk -drive C",
+        "wmic diskdrive get model,status"
+      ],
+      "mac": [
+        "system_profiler SPNVMeDataType",
+        "diskutil info disk0 | grep TRIM"
+      ],
+      "linux": [
+        "sudo hdparm -tT /dev/nvme0n1",
+        "sudo smartctl -a /dev/nvme0n1",
+        "cat /sys/block/nvme0n1/queue/scheduler",
+        "sudo fstrim -v /"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "ssd",
+      "nvme",
+      "slow",
+      "trim",
+      "storage",
+      "speed"
+    ]
+  },
+  {
+    "id": "081",
+    "issue": "Second hard drive or partition not showing up in file manager",
+    "resolution": {
+      "windows": "Open Disk Management \u2014 drive may appear as unallocated. Initialize the disk and create a new volume. Assign a drive letter. If drive shows but no letter, right-click > Change Drive Letter and Paths.",
+      "mac": "Check Disk Utility \u2014 click View > Show All Devices. Drive may need to be mounted or formatted. If formatted as NTFS, it will mount as read-only. Use disk utility to mount.",
+      "linux": "Check with lsblk and fdisk -l. Drive may need to be mounted. Create mount point and add to /etc/fstab for auto-mount. If new drive, partition and format it first."
+    },
+    "issue_class": "Hardware - Storage",
+    "commands": {
+      "windows": [
+        "diskmgmt.msc",
+        "diskpart",
+        "list volume"
+      ],
+      "mac": [
+        "diskutil list",
+        "diskutil mountDisk disk2",
+        "diskutil info disk2"
+      ],
+      "linux": [
+        "lsblk",
+        "sudo fdisk -l",
+        "sudo mkdir /mnt/data && sudo mount /dev/sdb1 /mnt/data",
+        "cat /etc/fstab"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "partition",
+      "drive",
+      "mount",
+      "disk management",
+      "storage"
+    ]
+  },
+  {
+    "id": "082",
+    "issue": "Multiple monitor setup not working correctly with different refresh rates",
+    "resolution": {
+      "windows": "Check Display Settings > Advanced Display for each monitor. Set correct refresh rate per monitor. If one monitor reverts, update GPU driver. Some GPUs cannot mix refresh rates on certain ports.",
+      "mac": "Check System Settings > Displays. Click each display and set refresh rate. Some Macs limit external display refresh on certain ports. Check if DisplayPort vs HDMI makes a difference.",
+      "linux": "Use xrandr to set individual refresh rates per output. Check if GPU driver supports mixed refresh. For NVIDIA, check nvidia-settings. For AMD, use amdgpu driver settings."
+    },
+    "issue_class": "Hardware - Display",
+    "commands": {
+      "windows": [
+        "desk.cpl",
+        "nvidia-smi",
+        "dxdiag"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType"
+      ],
+      "linux": [
+        "xrandr --output HDMI-1 --mode 1920x1080 --rate 144",
+        "nvidia-settings",
+        "xrandr --verbose"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "monitor",
+      "refresh rate",
+      "dual monitor",
+      "display",
+      "hz"
+    ]
+  },
+  {
+    "id": "083",
+    "issue": "Laptop lid close action not working correctly",
+    "resolution": {
+      "windows": "Check Power Options > Choose what closing the lid does. Set the desired action (sleep/hibernate/nothing) for both battery and plugged in. If not responding, update ACPI drivers.",
+      "mac": "Mac always sleeps on lid close by default. If clamshell mode (external display) is needed, connect power + external display + keyboard/mouse. For no-sleep on lid close, use Amphetamine app.",
+      "linux": "Edit /etc/systemd/logind.conf and set HandleLidSwitch=. Options: suspend, hibernate, ignore, poweroff. Restart systemd-logind after changes. Check if ACPI events are firing."
+    },
+    "issue_class": "Hardware - Laptop",
+    "commands": {
+      "windows": [
+        "powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_BUTTONS LIDACTION 1",
+        "powercfg /q"
+      ],
+      "mac": [
+        "pmset -g",
+        "sudo pmset -a disablesleep 1"
+      ],
+      "linux": [
+        "cat /etc/systemd/logind.conf | grep Lid",
+        "sudo systemctl restart systemd-logind",
+        "acpi_listen"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "lid",
+      "close",
+      "sleep",
+      "clamshell",
+      "laptop"
+    ]
+  },
+  {
+    "id": "084",
+    "issue": "Fingerprint reader not working or not recognizing enrolled fingerprints",
+    "resolution": {
+      "windows": "Re-enroll fingerprints in Settings > Accounts > Sign-in options. Update fingerprint driver. Run Windows Hello troubleshooter. Clean the sensor. Check if Windows Biometric Service is running.",
+      "mac": "Re-enroll fingerprints in System Settings > Touch ID. Clean the sensor. If using a case, ensure it does not cover the sensor. If persistent, reset SMC. Check if Apple Pay or MDM is interfering.",
+      "linux": "Check if fingerprint device is detected with lsusb. Install fprintd and libfprint. Enroll fingerprints with fprintd-enroll. Configure PAM for fingerprint auth. Check if device is supported."
+    },
+    "issue_class": "Hardware - Biometric",
+    "commands": {
+      "windows": [
+        "net start WbioSrvc",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "bioutil --current",
+        "bioutil --purge"
+      ],
+      "linux": [
+        "fprintd-list ",
+        "fprintd-enroll",
+        "lsusb | grep -i finger",
+        "sudo pam-auth-update"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "fingerprint",
+      "biometric",
+      "touch id",
+      "windows hello",
+      "sensor"
+    ]
+  },
+  {
+    "id": "085",
+    "issue": "Charging cable or port not working, laptop not charging",
+    "resolution": {
+      "windows": "Try a different charger and cable. Check if battery icon shows plugged in not charging. Update battery drivers in Device Manager. Uninstall Microsoft ACPI battery and restart. Check power jack for damage.",
+      "mac": "Try a different cable and adapter. Check for debris in USB-C port. Reset SMC. Check battery health in System Settings > Battery. If MagSafe LED does not light, adapter may be faulty.",
+      "linux": "Check charging status with upower. Try a different cable and adapter. Check dmesg for USB-C/charging errors. Verify ACPI battery module is loaded. Check for physical port damage."
+    },
+    "issue_class": "Hardware - Charging",
+    "commands": {
+      "windows": [
+        "powercfg /batteryreport",
+        "devmgmt.msc"
+      ],
+      "mac": [
+        "system_profiler SPPowerDataType",
+        "pmset -g batt",
+        "ioreg -l | grep Charging"
+      ],
+      "linux": [
+        "upower -i /org/freedesktop/UPower/devices/battery_BAT0",
+        "cat /sys/class/power_supply/BAT0/status",
+        "dmesg | grep -i charg"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "charging",
+      "cable",
+      "port",
+      "usb-c",
+      "power adapter"
+    ]
+  },
+  {
+    "id": "086",
+    "issue": "High disk usage at 100% making everything slow",
+    "resolution": {
+      "windows": "Check Task Manager > Disk column for the guilty process. Common culprits: Windows Search indexer, Superfetch/SysMain, antivirus, Windows Update. Disable SysMain service if on SSD. Check disk health.",
+      "mac": "Check Activity Monitor > Disk tab. Common culprits: Spotlight indexing (mdworker), Time Machine. Wait for indexing to complete. If persistent, rebuild Spotlight index.",
+      "linux": "Use iotop to identify the process. Common culprits: journald, tracker-miner, snapd, apt. Check if swapping heavily with vmstat. Reduce swappiness if on SSD."
+    },
+    "issue_class": "Performance - Disk",
+    "commands": {
+      "windows": [
+        "resmon",
+        "sc stop SysMain",
+        "sc config SysMain start=disabled"
+      ],
+      "mac": [
+        "sudo mdutil -E /",
+        "sudo fs_usage -f diskio"
+      ],
+      "linux": [
+        "sudo iotop -ao",
+        "vmstat 1 5",
+        "cat /proc/sys/vm/swappiness",
+        "sudo sysctl vm.swappiness=10"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "disk",
+      "100%",
+      "io",
+      "slow",
+      "performance",
+      "sysmain"
+    ]
+  },
+  {
+    "id": "087",
+    "issue": "Network speed test shows fast connection but downloads are slow",
+    "resolution": {
+      "windows": "Check if download speed limit is set in app (Steam, browser). Check QoS policies in router. Disable Windows delivery optimization. Try downloading from a different source. Check for VPN throttling.",
+      "mac": "Check if app has download limits. Check for active Time Machine or iCloud uploads consuming bandwidth. Try different download source. Check Activity Monitor > Network for competing processes.",
+      "linux": "Check with wget or curl directly to isolate browser. Check for QoS or traffic shaping rules. Verify MTU is correct. Check if torrent client or background sync is using bandwidth."
+    },
+    "issue_class": "Performance - Network",
+    "commands": {
+      "windows": [
+        "netstat -b",
+        "resmon"
+      ],
+      "mac": [
+        "nettop -m tcp",
+        "networkQuality -v"
+      ],
+      "linux": [
+        "sudo nethogs",
+        "wget -O /dev/null http://speedtest.tele2.net/10MB.zip",
+        "ip link show | grep mtu"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "download",
+      "speed",
+      "slow",
+      "bandwidth",
+      "throttle"
+    ]
+  },
+  {
+    "id": "088",
+    "issue": "Video playback stuttering or dropping frames",
+    "resolution": {
+      "windows": "Update GPU driver. Check if hardware acceleration is enabled in browser/player. Close other GPU-intensive apps. Check Task Manager for GPU usage. Try a different video player like VLC.",
+      "mac": "Check Activity Monitor for GPU usage. Enable hardware acceleration in browser. Close other apps. Try VLC if native player stutters. Check if display is at correct refresh rate.",
+      "linux": "Install proper GPU drivers (nvidia/mesa). Enable hardware video decoding (VA-API/VDPAU). Check if compositor is causing issues. Try VLC with hardware acceleration."
+    },
+    "issue_class": "Performance - GPU",
+    "commands": {
+      "windows": [
+        "dxdiag",
+        "nvidia-smi",
+        "taskmgr"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType"
+      ],
+      "linux": [
+        "vainfo",
+        "vdpauinfo",
+        "glxinfo | grep renderer",
+        "mpv --hwdec=auto video.mp4"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "video",
+      "stuttering",
+      "gpu",
+      "frames",
+      "playback"
+    ]
+  },
+  {
+    "id": "089",
+    "issue": "Computer waking from sleep is very slow and takes minutes",
+    "resolution": {
+      "windows": "Check if hibernate file is corrupted. Disable hybrid sleep. Update chipset and USB drivers. Check powercfg sleep study for slow wake components. Disable USB selective suspend.",
+      "mac": "Reset SMC and NVRAM. Check if drive encryption is decrypting on wake. Disable Power Nap. Check if too many apps restore on wake. Try rebuilding sleep image.",
+      "linux": "Check journalctl for resume delays. Identify slow-resuming services. Check if GPU driver causes slow wake. Disable unnecessary services from resuming. Check swap/hibernate configuration."
+    },
+    "issue_class": "Performance - Power",
+    "commands": {
+      "windows": [
+        "powercfg /sleepstudy",
+        "powercfg /a",
+        "powercfg /hibernate off"
+      ],
+      "mac": [
+        "pmset -g log | grep -i wake",
+        "sudo pmset -a standby 0"
+      ],
+      "linux": [
+        "journalctl -b | grep -i resume",
+        "systemd-analyze blame",
+        "cat /sys/power/mem_sleep"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "wake",
+      "sleep",
+      "slow",
+      "resume",
+      "performance"
+    ]
+  },
+  {
+    "id": "090",
+    "issue": "Compilation or build process taking extremely long time",
+    "resolution": {
+      "windows": "Exclude build directories from antivirus real-time scanning. Use SSD for project files. Enable parallel builds in IDE. Check if Windows Defender is scanning every compiled file. Increase available RAM.",
+      "mac": "Exclude build/derived data folders from Spotlight indexing. Use parallel builds with -j flag. Check Activity Monitor during build for bottleneck (CPU vs disk). Consider RAM disk for build output.",
+      "linux": "Use make -j1 for parallel builds. Use ccache for C/C++ incremental builds. Mount build directory as tmpfs for RAM-backed builds. Check if disk I/O is the bottleneck with iotop."
+    },
+    "issue_class": "Performance - Development",
+    "commands": {
+      "windows": [
+        "Add-MpPreference -ExclusionPath \"C:\\Projects\"",
+        "msbuild /m"
+      ],
+      "mac": [
+        "mdutil -i off /path/to/project",
+        "xcodebuild -jobs "
+      ],
+      "linux": [
+        "make -j1",
+        "ccache -s",
+        "sudo mount -t tmpfs -o size=4G tmpfs /tmp/build"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "build",
+      "compile",
+      "slow",
+      "development",
+      "performance"
+    ]
+  },
+  {
+    "id": "091",
+    "issue": "Gaming performance poor with low FPS and stuttering",
+    "resolution": {
+      "windows": "Update GPU driver. Check if game is using dedicated GPU (not integrated). Disable background apps. Set Windows power plan to High Performance. Check GPU temperature for thermal throttling. Lower in-game settings.",
+      "mac": "Macs are limited for gaming. Close all other apps. Check if using Metal API. Lower game resolution and settings. Check Activity Monitor for GPU usage. Ensure not on battery (throttles GPU).",
+      "linux": "Check if correct GPU driver is installed (nvidia vs nouveau). Enable GameMode with gamemoderun. Check with mangohud for FPS overlay. Set CPU governor to performance. Verify Vulkan support."
+    },
+    "issue_class": "Performance - Gaming",
+    "commands": {
+      "windows": [
+        "nvidia-smi",
+        "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+      ],
+      "mac": [
+        "system_profiler SPDisplaysDataType",
+        "pmset -g"
+      ],
+      "linux": [
+        "nvidia-smi",
+        "vulkaninfo --summary",
+        "gamemoderun %command%",
+        "cpupower frequency-set -g performance"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "gaming",
+      "fps",
+      "gpu",
+      "performance",
+      "stuttering"
+    ]
+  },
+  {
+    "id": "092",
+    "issue": "Database queries running slow affecting application performance",
+    "resolution": {
+      "windows": "Check database server resources (CPU, RAM, disk I/O). Analyze slow query log. Add missing indexes. Check if statistics are outdated and need rebuild. Monitor connection pool utilization.",
+      "mac": "Same database tuning applies. Check Activity Monitor for the database process. Ensure SSD is being used. Check if development database has grown too large. Vacuum/analyze if PostgreSQL.",
+      "linux": "Enable and analyze slow query log. Use EXPLAIN on slow queries. Check if indexes exist on WHERE/JOIN columns. Monitor with pg_stat_activity or SHOW PROCESSLIST. Check disk I/O with iotop."
+    },
+    "issue_class": "Performance - Database",
+    "commands": {
+      "windows": [],
+      "mac": [],
+      "linux": [
+        "sudo mysqladmin processlist",
+        "sudo -u postgres psql -c \"SELECT * FROM pg_stat_activity\"",
+        "sudo iotop -ao"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "database",
+      "query",
+      "slow",
+      "index",
+      "performance"
+    ]
+  },
+  {
+    "id": "093",
+    "issue": "Backup job failing or taking too long to complete",
+    "resolution": {
+      "windows": "Check Windows Backup log in Event Viewer. Verify backup destination has enough space. Check if VSS (Volume Shadow Copy) service is running. Exclude unnecessary large files. Check if antivirus is scanning backup files.",
+      "mac": "Check Time Machine in System Settings for errors. Verify backup disk has space. If first backup is slow, it will speed up after initial complete backup. Check Console for Time Machine errors. Exclude large unnecessary folders.",
+      "linux": "Check backup tool logs (rsync, borgbackup, restic). Verify destination storage. Use incremental backups. Check network speed if backing up to NAS. Add --progress flag to see what is slow."
+    },
+    "issue_class": "Software - Backup",
+    "commands": {
+      "windows": [
+        "vssadmin list writers",
+        "wbadmin get status",
+        "eventvwr.msc"
+      ],
+      "mac": [
+        "tmutil status",
+        "tmutil latestbackup",
+        "log show --predicate \"subsystem == \"com.apple.TimeMachine\"\" --last 1h"
+      ],
+      "linux": [
+        "rsync -avz --progress /source/ /dest/",
+        "borg list /backup/repo",
+        "restic snapshots"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "backup",
+      "time machine",
+      "vss",
+      "rsync",
+      "restore"
+    ]
+  },
+  {
+    "id": "094",
+    "issue": "Remote desktop connection failing or very laggy",
+    "resolution": {
+      "windows": "Check if Remote Desktop is enabled in System Properties. Verify firewall allows RDP port 3389. Check if NLA (Network Level Authentication) is required. For lag, reduce color depth and disable visual effects in RDP settings.",
+      "mac": "Use Microsoft Remote Desktop app from App Store. Check if target machine allows RDP. For screen sharing to another Mac, use Screen Sharing app or VNC. Check network latency.",
+      "linux": "Use Remmina, xfreerdp, or rdesktop for RDP. For Linux-to-Linux, use SSH with X forwarding or VNC. Check if xrdp service is running on target. Verify firewall allows the connection."
+    },
+    "issue_class": "Software - Remote Access",
+    "commands": {
+      "windows": [
+        "mstsc",
+        "netstat -an | findstr 3389",
+        "SystemPropertiesRemote"
+      ],
+      "mac": [
+        "open vnc://hostname",
+        "open rdp://hostname"
+      ],
+      "linux": [
+        "xfreerdp /v:hostname /u:username",
+        "ssh -X user@hostname",
+        "sudo systemctl status xrdp",
+        "vncserver :1"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "remote desktop",
+      "rdp",
+      "vnc",
+      "ssh",
+      "lag"
+    ]
+  },
+  {
+    "id": "095",
+    "issue": "Cannot eject or safely remove external drive",
+    "resolution": {
+      "windows": "Close all programs using the drive. Check Resource Monitor > Disk for processes using the drive. Try Safely Remove Hardware from system tray. If still fails, use diskpart offline command. As last resort, shutdown before removing.",
+      "mac": "Close all files open from the drive. Check Activity Monitor > Disk for processes using it. Try dragging drive to Trash or Cmd+E. Use diskutil unmount from Terminal. Force unmount if needed.",
+      "linux": "Check for open files with lsof on the mount point. Close all applications. Use umount command. If busy, use fuser to find and kill blocking processes. Sync before removing."
+    },
+    "issue_class": "Hardware - Storage",
+    "commands": {
+      "windows": [
+        "resmon",
+        "diskpart",
+        "Remove-ItemSafely"
+      ],
+      "mac": [
+        "diskutil unmount /Volumes/DriveName",
+        "diskutil unmountDisk force /dev/disk2"
+      ],
+      "linux": [
+        "sudo umount /mnt/usb",
+        "sudo lsof +f -- /mnt/usb",
+        "sudo fuser -km /mnt/usb",
+        "sync"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "eject",
+      "unmount",
+      "safe remove",
+      "external",
+      "drive"
+    ]
+  },
+  {
+    "id": "096",
+    "issue": "Clipboard not working, copy and paste stopped functioning",
+    "resolution": {
+      "windows": "Restart the clipboard service (rdpclip.exe for RDP). Try clearing clipboard history with Win+V > Clear all. Check if clipboard manager extension is interfering. Restart Explorer.",
+      "mac": "Restart pboard process which manages clipboard. Check if clipboard manager app is interfering. Try using pbcopy/pbpaste in Terminal to test. Reboot if persistent.",
+      "linux": "Check if clipboard manager (xclip, xsel) is working. Restart clipboard daemon. For Wayland, use wl-copy/wl-paste. Check if clipboard is full or corrupted. Install xclip if missing."
+    },
+    "issue_class": "Software - System",
+    "commands": {
+      "windows": [
+        "taskkill /IM rdpclip.exe && rdpclip",
+        "taskkill /IM explorer.exe && explorer"
+      ],
+      "mac": [
+        "sudo killall pboard",
+        "pbpaste",
+        "echo test | pbcopy"
+      ],
+      "linux": [
+        "xclip -selection clipboard -o",
+        "xsel --clipboard --output",
+        "pkill xfce4-clipman"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "clipboard",
+      "copy",
+      "paste",
+      "rdpclip",
+      "pboard"
+    ]
+  },
+  {
+    "id": "097",
+    "issue": "Notification sounds or system alerts not working",
+    "resolution": {
+      "windows": "Check Settings > System > Notifications for app-specific settings. Check Sound Settings > Sound Control Panel > Sounds tab for event sounds. Verify speaker/headphone volume. Check Focus Assist is not silencing.",
+      "mac": "Check System Settings > Notifications for each app. Check Sound output device and volume. Verify Do Not Disturb / Focus mode is off. Check alert sound in Sound settings.",
+      "linux": "Check system sound settings. Verify notification daemon is running (dunst, mako, etc). Check if Do Not Disturb is enabled. Test with paplay or canberra-gtk-play."
+    },
+    "issue_class": "Software - Notifications",
+    "commands": {
+      "windows": [
+        "ms-settings:notifications",
+        "mmsys.cpl"
+      ],
+      "mac": [
+        "defaults read com.apple.notificationcenterui"
+      ],
+      "linux": [
+        "paplay /usr/share/sounds/freedesktop/stereo/message.oga",
+        "dunstctl history",
+        "notify-send \"Test\" \"Hello\""
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "notifications",
+      "alerts",
+      "sound",
+      "focus",
+      "do not disturb"
+    ]
+  },
+  {
+    "id": "098",
+    "issue": "Screenshot tool not working or capturing black screen",
+    "resolution": {
+      "windows": "Try Win+Shift+S for Snipping Tool. If black screen, disable hardware acceleration in the app being captured. For game capture, use Win+G (Xbox Game Bar). Update GPU driver.",
+      "mac": "Use Cmd+Shift+3 (full) or Cmd+Shift+4 (selection). If blank, check screenshots save location in Screenshot app options. Reset NVRAM. Check if screen recording permission is needed for some apps.",
+      "linux": "Use gnome-screenshot, flameshot, or scrot. If Wayland, use grim or built-in GNOME screenshot. Black screen in Wayland apps may require portal support. Check if compositor allows screen capture."
+    },
+    "issue_class": "Software - Screenshot",
+    "commands": {
+      "windows": [
+        "snippingtool",
+        "explorer ms-screenclip:"
+      ],
+      "mac": [
+        "screencapture -x ~/Desktop/screenshot.png",
+        "defaults read com.apple.screencapture location"
+      ],
+      "linux": [
+        "gnome-screenshot -a",
+        "flameshot gui",
+        "grim -g \"\" screenshot.png"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "screenshot",
+      "capture",
+      "black screen",
+      "snipping",
+      "screen"
+    ]
+  },
+  {
+    "id": "099",
+    "issue": "Spell check or autocorrect not working in applications",
+    "resolution": {
+      "windows": "Check Settings > Devices > Typing for autocorrect settings. In Office, check File > Options > Proofing. Verify language pack is installed. Check if custom dictionary has overridden corrections.",
+      "mac": "Check System Settings > Keyboard > Text Input > Edit for autocorrect. In individual apps, check Edit > Spelling and Grammar. Verify language is set correctly. Reset custom dictionary if corrupted.",
+      "linux": "Install aspell or hunspell dictionaries for your language. Check application-specific spell check settings. For LibreOffice, install language extension. Verify locale is set correctly."
+    },
+    "issue_class": "Software - Input",
+    "commands": {
+      "windows": [
+        "ms-settings:typing"
+      ],
+      "mac": [
+        "defaults read -g NSAutomaticSpellingCorrectionEnabled",
+        "defaults write -g NSAutomaticSpellingCorrectionEnabled -bool true"
+      ],
+      "linux": [
+        "aspell dump dicts",
+        "sudo apt install aspell-en hunspell-en-us"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "spell check",
+      "autocorrect",
+      "typing",
+      "language",
+      "dictionary"
+    ]
+  },
+  {
+    "id": "100",
+    "issue": "Computer not recognizing new hardware after installation",
+    "resolution": {
+      "windows": "Check Device Manager for unknown devices or yellow exclamation marks. Scan for hardware changes. Install driver from manufacturer website. Check if hardware is compatible with your OS version. Try a different slot/port.",
+      "mac": "Check System Information for the hardware. Macs have limited hardware upgrade options. For external devices, check compatibility. Restart after connecting. Try resetting SMC and NVRAM.",
+      "linux": "Check dmesg for hardware detection messages. Use lspci and lsusb to verify detection. Install appropriate kernel module or driver. Check if firmware package is needed. Try modprobe to load the driver manually."
+    },
+    "issue_class": "Hardware - General",
+    "commands": {
+      "windows": [
+        "devmgmt.msc",
+        "pnputil /scan-devices",
+        "driverquery /v"
+      ],
+      "mac": [
+        "system_profiler",
+        "kextstat | wc -l"
+      ],
+      "linux": [
+        "dmesg | tail -30",
+        "lspci -v",
+        "lsusb -v",
+        "sudo modprobe driver_name",
+        "lsmod | grep driver"
+      ]
+    },
+    "escalation_required": false,
+    "tags": [
+      "hardware",
+      "driver",
+      "new device",
+      "unrecognized",
+      "installation"
+    ]
   }
 ]

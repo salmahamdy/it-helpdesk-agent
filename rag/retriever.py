@@ -9,7 +9,7 @@ Flow:
 
 from rag.embedder import embed_text
 from rag.vector_store import VectorStore
-from rag.database import get_all_cases, insert_case
+from rag.database import get_all_cases, insert_case, update_case
 from config import TOP_K_RESULTS, SIMILARITY_THRESHOLD
 
 _store: VectorStore | None = None
@@ -29,13 +29,26 @@ def retrieve_similar_cases(
     query: str,
     top_k: int = TOP_K_RESULTS,
     min_score: float = SIMILARITY_THRESHOLD,
+    verified_only: bool = True,
 ) -> list[dict]:
-    """Return up to top_k cases above the similarity threshold."""
+    """Return up to top_k cases above the similarity threshold.
+
+    By default only *verified* cases are returned. This is what breaks the
+    self-poisoning loop: agent-generated cases are stored with verified=False,
+    so they cannot be retrieved as authoritative context until a human (or a
+    separate verification step) promotes them. Pass verified_only=False only
+    for admin/debug use.
+    """
     store = _load_store()
     query_embedding = embed_text(query)
-    results = store.search(query_embedding, top_k)
-    # Filter out low-relevance noise
-    return [r for r in results if r.get("similarity_score", 0) >= min_score]
+    # Over-fetch so the verified + threshold filter can still yield up to top_k.
+    raw = store.search(query_embedding, top_k * 5)
+    filtered = [
+        r for r in raw
+        if r.get("similarity_score", 0) >= min_score
+        and (not verified_only or r.get("verified", False))
+    ]
+    return filtered[:top_k]
 
 
 def add_to_knowledge_base(case: dict) -> str:
@@ -45,6 +58,22 @@ def add_to_knowledge_base(case: dict) -> str:
     store = _load_store()
     store.add_case(case)
     return case_id
+
+
+def mark_verified(case_id: str, reviewer: str = "human") -> bool:
+    """Promote a queued (verified=False) case so it becomes retrievable.
+
+    Completes the human-in-the-loop: nothing the agent writes is trusted as
+    retrieval context until it passes through here. Reloads the in-memory index
+    so the change takes effect immediately.
+    """
+    ok = update_case(
+        case_id,
+        {"verified": True, "review_status": "approved", "reviewed_by": reviewer},
+    )
+    if ok:
+        reload_store()
+    return ok
 
 
 def reload_store() -> None:

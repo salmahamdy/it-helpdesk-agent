@@ -11,7 +11,7 @@ Replaces the JSON file store with MongoDB. Supports:
 import os
 import json
 from datetime import datetime, timezone
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, ReturnDocument
 from pymongo.collection import Collection
 from config import MONGO_URI, MONGO_DB_NAME, MONGO_COLLECTION, KNOWLEDGE_BASE_PATH
 
@@ -60,6 +60,40 @@ def get_case(case_id: str) -> dict | None:
     return col.find_one({"case_id": case_id}, {"_id": 0})
 
 
+def _next_case_id(col: Collection) -> str:
+    """Return a unique, sequential case_id using an atomic counter.
+
+    Uses find_one_and_update($inc) on a 'counters' collection, which is atomic
+    server-side, so concurrent inserts can never receive the same id (the old
+    count_documents()+1 approach raced and tripped the unique index).
+
+    The counter is lazily seeded to the current max numeric case_id so it does
+    not collide with seed cases created during the JSON->Mongo migration.
+    """
+    counters = col.database["counters"]
+
+    if counters.find_one({"_id": "case_id"}) is None:
+        max_seq = 0
+        for cid in col.distinct("case_id"):
+            try:
+                max_seq = max(max_seq, int(cid))
+            except (TypeError, ValueError):
+                continue  # ignore non-numeric ids (e.g. legacy UUIDs)
+        # $setOnInsert + upsert makes the seed itself atomic: only one writer wins.
+        counters.update_one(
+            {"_id": "case_id"},
+            {"$setOnInsert": {"seq": max_seq}},
+            upsert=True,
+        )
+
+    doc = counters.find_one_and_update(
+        {"_id": "case_id"},
+        {"$inc": {"seq": 1}},
+        return_document=ReturnDocument.AFTER,
+    )
+    return str(doc["seq"]).zfill(3)
+
+
 def insert_case(case: dict) -> str:
     """
     Insert a new case and return its case_id.
@@ -68,8 +102,7 @@ def insert_case(case: dict) -> str:
     col = get_collection()
 
     if "case_id" not in case:
-        count = col.count_documents({})
-        case["case_id"] = str(count + 1).zfill(3)
+        case["case_id"] = _next_case_id(col)
 
     case.setdefault("created_at", datetime.now(timezone.utc).isoformat())
     case.setdefault("source", "agent")

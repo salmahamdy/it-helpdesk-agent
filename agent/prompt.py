@@ -22,7 +22,6 @@ Respond ONLY with a valid JSON object in this exact format — no markdown, no e
 {{
   "issue_class": "<category like Hardware/Network/Software/Security/Performance>",
   "confidence": <float between 0.0 and 1.0>,
-  "used_rag": <true if similar cases influenced your answer, false otherwise>,
   "diagnosis_summary": "<2-3 sentence technical diagnosis>",
   "resolution_steps": ["<step 1>", "<step 2>", "<step 3>"],
   "commands": ["<command1>", "<command2>"],
